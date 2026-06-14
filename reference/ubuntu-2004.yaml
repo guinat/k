@@ -1,0 +1,173 @@
+# =============================================================================
+# reference/ubuntu-2004.yaml  —  golden image (source-derived)
+# Layer: child of base  |  Debian/Ubuntu Ubuntu 20.04 LTS (Focal)
+# Généré depuis docs/storage-standards (recherche sourcée). Tailles en OCTETS
+# (interprétation de la chaîne source conservée dans size_source).
+# À VÉRIFIER contre les sources citées (section 'sources') avant de figer.
+# =============================================================================
+model_id: ubuntu-2004
+parent: base
+os_family: "Debian/Ubuntu"
+os_distribution: ["Ubuntu"]
+os_version: "Ubuntu 20.04 LTS (Focal)"
+default_fstype: "ext4"
+swap_guidance: "Ubuntu official recommendation: For systems with hibernation support, swap partition must be at least as large as RAM. For systems without hibernation: minimum round(sqrt(RAM)), maximum 2x RAM. Historically: equal to system memory. Modern guidance emphasizes that excessive swap is inefficient since disk access is ~1000x slower than RAM."
+notes: "Ubuntu 20.04 LTS (Focal Fossa) released April 2020, standard LTS with 5-year support. CIS Benchmark v1.1.0 available. Single / partition with /home separate is acceptable for most users."
+expected_filesystems:
+  - mount_point: "/"
+    classification: "system"
+    requirement: "mandatory"
+    mandatory: true
+    separate_filesystem_required: "yes"
+    expected_fstype: "ext4"
+    min_size_bytes: 8589934592
+    max_size_bytes: null
+    size_source: {min: "8 GiB", max: "unbounded"}
+    expected_mount_options: "defaults"
+    source_id: ["ubuntu-disk-space"]
+    notes: "Root filesystem. Minimum 8GB, recommended 15GB by Ubuntu official documentation."
+  - mount_point: "/boot"
+    classification: "boot"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "conditional"
+    expected_fstype: "ext4"
+    min_size_bytes: 268435456
+    max_size_bytes: 1073741824
+    size_source: {min: "256 MiB", max: "1 GiB"}
+    expected_mount_options: "defaults,nosuid,nodev"
+    source_id: ["ubuntu-partitioning"]
+    notes: "Boot loader files. Separate partition recommended on GPT/UEFI systems. Can be necessary if /boot files are >100GB from disk start (some BIOS limitations)."
+  - mount_point: "/boot/efi"
+    classification: "boot"
+    requirement: "conditional"
+    mandatory: false
+    separate_filesystem_required: "yes"
+    expected_fstype: "vfat"
+    min_size_bytes: 209715200
+    max_size_bytes: 1073741824
+    size_source: {min: "200 MiB", max: "1 GiB"}
+    expected_mount_options: "defaults"
+    source_id: ["ubuntu-partitioning"]
+    notes: "EFI System Partition (ESP) created automatically by installer in UEFI mode. Ubuntu 20.04 creates minimum 538MiB on UEFI systems."
+  - mount_point: "/home"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "yes"
+    expected_fstype: "ext4"
+    min_size_bytes: null
+    max_size_bytes: null
+    size_source: {min: "unbounded", max: "unbounded"}
+    expected_mount_options: "defaults,nosuid,nodev"
+    source_id: ["ubuntu-partitioning", "cis-ubuntu-20"]
+    notes: "User home directories. Recommended for multi-user systems. CIS Benchmark for Ubuntu 20.04 recommends nosuid,nodev mount options."
+  - mount_point: "/usr"
+    classification: "system"
+    requirement: "optional"
+    mandatory: false
+    separate_filesystem_required: "conditional"
+    expected_fstype: "ext4"
+    min_size_bytes: 10737418240
+    max_size_bytes: null
+    size_source: {min: "10 GiB", max: "unbounded"}
+    expected_mount_options: "defaults"
+    source_id: ["ubuntu-disk-space"]
+    notes: "User programs and data. Ubuntu documentation recommends ~10GB for separate /usr partition. Can be mounted read-only if separate."
+  - mount_point: "/var"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "yes"
+    expected_fstype: "ext4"
+    min_size_bytes: 2147483648
+    max_size_bytes: null
+    size_source: {min: "2 GiB", max: "unbounded"}
+    expected_mount_options: "defaults,nosuid,nodev"
+    source_id: ["ubuntu-disk-space", "cis-ubuntu-20"]
+    notes: "Variable data. Ubuntu recommends 2GB for separate /var partition, 3GB+ if upgrading packages. CIS Benchmark recommends nosuid,nodev."
+  - mount_point: "/var/log"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "conditional"
+    expected_fstype: "ext4"
+    min_size_bytes: 104857600
+    max_size_bytes: null
+    size_source: {min: "100 MiB", max: "unbounded"}
+    expected_mount_options: "defaults,nodev,nosuid,noexec"
+    source_id: ["cis-ubuntu-20"]
+    notes: "System log files. CIS Benchmark for Ubuntu 20.04 requires separate partition with nodev,nosuid,noexec mount options."
+  - mount_point: "/var/tmp"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "conditional"
+    expected_fstype: "ext4"
+    min_size_bytes: 104857600
+    max_size_bytes: null
+    size_source: {min: "100 MiB", max: "unbounded"}
+    expected_mount_options: "defaults,nodev,nosuid,noexec"
+    source_id: ["cis-ubuntu-20"]
+    notes: "Temporary files preserved between reboots. CIS Benchmark requires separate partition with nodev,nosuid,noexec mount options."
+  - mount_point: "/tmp"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "yes"
+    expected_fstype: "ext4"
+    min_size_bytes: 524288000
+    max_size_bytes: 2147483648
+    size_source: {min: "500 MiB", max: "2 GiB"}
+    expected_mount_options: "defaults,nodev,nosuid,noexec"
+    source_id: ["cis-ubuntu-20"]
+    notes: "Temporary files. Ubuntu recommends 20-50MB minimum historically, but CIS Benchmark requires separate partition with nodev,nosuid,noexec mount options."
+  - mount_point: "/dev/shm"
+    classification: "data"
+    requirement: "optional"
+    mandatory: false
+    separate_filesystem_required: "no"
+    expected_fstype: "tmpfs"
+    min_size_bytes: null
+    max_size_bytes: null
+    size_source: {min: "N/A", max: "N/A"}
+    expected_mount_options: "defaults,nodev,nosuid,noexec"
+    source_id: ["cis-ubuntu-20"]
+    notes: "Shared memory filesystem (tmpfs). CIS Benchmark recommends mounting with nodev,nosuid,noexec options."
+  - mount_point: "swap"
+    classification: "swap"
+    requirement: "mandatory"
+    mandatory: true
+    separate_filesystem_required: "yes"
+    expected_fstype: "swap"
+    min_size_bytes: 1073741824
+    max_size_bytes: null
+    size_source: {min: "1 GiB", max: "2x RAM"}
+    expected_mount_options: "defaults"
+    source_id: ["ubuntu-swap-faq"]
+    notes: "Swap space. Ubuntu official guidance: equal to system RAM. For modern systems (>1GB RAM) without hibernation: min=round(sqrt(RAM)), max=2xRAM. With hibernation: min=RAM size."
+sources:
+  ubuntu-disk-space:
+    title: "Ubuntu Community Help: DiskSpace"
+    publisher: "Ubuntu Community"
+    url: "https://help.ubuntu.com/community/DiskSpace"
+    version_or_date: "Current"
+    retrieved: true
+  ubuntu-partitioning:
+    title: "Ubuntu Community Help: PartitioningSchemes"
+    publisher: "Ubuntu Community"
+    url: "https://help.ubuntu.com/community/PartitioningSchemes"
+    version_or_date: "Current"
+    retrieved: true
+  cis-ubuntu-20:
+    title: "CIS Ubuntu Linux 20.04 LTS Benchmark v1.1.0"
+    publisher: "Center for Internet Security (CIS)"
+    url: "https://edu.anarcho-copy.org/GNU%20Linux%20-%20Unix-Like/Debian/CIS_Ubuntu_Linux_20.04_LTS_Benchmark_v1.1.0.pdf"
+    version_or_date: "v1.1.0 (2020)"
+    retrieved: false
+  ubuntu-swap-faq:
+    title: "Ubuntu Community Help: SwapFaq"
+    publisher: "Ubuntu Community"
+    url: "https://help.ubuntu.com/community/SwapFaq"
+    version_or_date: "Current"
+    retrieved: true

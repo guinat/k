@@ -1,0 +1,215 @@
+# =============================================================================
+# reference/aix-71.yaml  —  golden image (source-derived)
+# Layer: child of base  |  AIX 7.1
+# Généré depuis docs/storage-standards (recherche sourcée). Tailles en OCTETS
+# (interprétation de la chaîne source conservée dans size_source).
+# À VÉRIFIER contre les sources citées (section 'sources') avant de figer.
+# =============================================================================
+model_id: aix-71
+parent: base
+os_family: "AIX"
+os_distribution: ["AIX"]
+os_version: "7.1"
+default_fstype: "JFS2"
+swap_guidance: "The general recommendation is that the sum of the sizes of the paging spaces should be equal to at least twice the size of real memory, up to 256 MB of memory (512 MB paging). For systems with memory > 256 MB: total paging space = 512 MB + (memory size - 256 MB) * 1.25. Each single paging space cannot exceed 64 GB. Default hd6 is 512 MB."
+notes: "AIX 7.1 requires minimum 10 GB disk for default installation. All standard filesystems must be JFS2. The rootvg contains mandatory system filesystems (hd2, hd3, hd4, hd5, hd6, hd8, hd9var). Optional filesystems include hd1, hd10opt, hd11admin. All rootvg filesystems except hd10opt cannot be moved. Default paging space (hd6) of 512 MB often insufficient for production systems. Application data should reside in separate datavg volume group. AIX 7.1 baseline documentation available from IBM."
+expected_filesystems:
+  - mount_point: "/"
+    classification: "system"
+    requirement: "mandatory"
+    mandatory: true
+    separate_filesystem_required: "no"
+    expected_fstype: "JFS2"
+    min_size_bytes: 256000000
+    max_size_bytes: null
+    size_source: {min: "256 MB", max: "unbounded"}
+    expected_mount_options: "rw (default)"
+    source_id: ["ibm-release-notes-71"]
+    notes: "hd4 logical volume; typically 0.25–2 GB in practice; root filesystem for AIX system"
+  - mount_point: "/usr"
+    classification: "system"
+    requirement: "mandatory"
+    mandatory: true
+    separate_filesystem_required: "yes"
+    expected_fstype: "JFS2"
+    min_size_bytes: 1000000000
+    max_size_bytes: null
+    size_source: {min: "1 GB", max: "unbounded"}
+    expected_mount_options: "rw (default)"
+    source_id: ["ibm-logical-volumes"]
+    notes: "hd2 logical volume; typically 2.56–6.25 GB; contains operating system binaries and libraries; cannot be moved from rootvg"
+  - mount_point: "/var"
+    classification: "system"
+    requirement: "mandatory"
+    mandatory: true
+    separate_filesystem_required: "yes"
+    expected_fstype: "JFS2"
+    min_size_bytes: 512000000
+    max_size_bytes: null
+    size_source: {min: "512 MB", max: "unbounded"}
+    expected_mount_options: "rw (default)"
+    source_id: ["ibm-logical-volumes"]
+    notes: "hd9var logical volume; typically 0.56–1 GB; contains variable data like logs and spool; cannot be moved from rootvg"
+  - mount_point: "/tmp"
+    classification: "system"
+    requirement: "mandatory"
+    mandatory: true
+    separate_filesystem_required: "yes"
+    expected_fstype: "JFS2"
+    min_size_bytes: 64000000
+    max_size_bytes: null
+    size_source: {min: "64 MB", max: "unbounded"}
+    expected_mount_options: "rw (default)"
+    source_id: ["ibm-release-notes-71"]
+    notes: "hd3 logical volume; minimum 64 MB enforced during installation/migration; typically 1.4–4 GB; temporary storage; cannot be moved from rootvg"
+  - mount_point: "/home"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "yes"
+    expected_fstype: "JFS2"
+    min_size_bytes: 1000000000
+    max_size_bytes: null
+    size_source: {min: "1 GB", max: "unbounded"}
+    expected_mount_options: "rw (default)"
+    source_id: ["ibm-logical-volumes"]
+    notes: "hd1 logical volume; typically 8–10 GB; user home directories; can be part of rootvg"
+  - mount_point: "/opt"
+    classification: "system"
+    requirement: "optional"
+    mandatory: false
+    separate_filesystem_required: "conditional"
+    expected_fstype: "JFS2"
+    min_size_bytes: 1000000000
+    max_size_bytes: null
+    size_source: {min: "1 GB", max: "unbounded"}
+    expected_mount_options: "rw (default)"
+    source_id: ["ibm-logical-volumes"]
+    notes: "hd10opt logical volume (new in AIX 5.1); optional; only created if no existing /opt filesystem exists; can contain optional software"
+  - mount_point: "/admin"
+    classification: "system"
+    requirement: "optional"
+    mandatory: false
+    separate_filesystem_required: "yes"
+    expected_fstype: "JFS2"
+    min_size_bytes: 512000000
+    max_size_bytes: null
+    size_source: {min: "512 MB", max: "unbounded"}
+    expected_mount_options: "rw (default)"
+    source_id: ["ibm-logical-volumes"]
+    notes: "hd11admin logical volume; optional administrative files and tools filesystem"
+  - mount_point: "/var/adm/ras/livedump"
+    classification: "system"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "yes"
+    expected_fstype: "JFS2"
+    min_size_bytes: 64000000
+    max_size_bytes: null
+    size_source: {min: "64 MB", max: "unbounded"}
+    expected_mount_options: "rw (default)"
+    source_id: ["ibm-livedumps"]
+    notes: "livedump logical volume; default size 64 MB or 1/4 system memory (whichever is less); introduced in AIX 6.1; stores livedump crash data"
+  - mount_point: "N/A (boot)"
+    classification: "boot"
+    requirement: "mandatory"
+    mandatory: true
+    separate_filesystem_required: "yes"
+    expected_fstype: "JFS2"
+    min_size_bytes: 24000000
+    max_size_bytes: 24000000
+    size_source: {min: "24 MB", max: "24 MB"}
+    expected_mount_options: "N/A"
+    source_id: ["ibm-release-notes-71"]
+    notes: "hd5 boot logical volume; must be exactly 24 MB for AIX 7.1; must be contiguous and within first 4 GB of disk; bootable kernel and boot files"
+  - mount_point: "N/A (paging)"
+    classification: "swap"
+    requirement: "mandatory"
+    mandatory: true
+    separate_filesystem_required: "yes"
+    expected_fstype: "paging"
+    min_size_bytes: 512000000
+    max_size_bytes: 64000000000
+    size_source: {min: "512 MB", max: "64 GB (per LV)"}
+    expected_mount_options: "N/A"
+    source_id: ["ibm-paging-spaces"]
+    notes: "hd6 primary paging space logical volume; default 512 MB; recommendation: 2x RAM for RAM ≤ 256 MB; for RAM > 256 MB: 512 MB + (RAM - 256 MB) × 1.25"
+  - mount_point: "N/A (journal log)"
+    classification: "system"
+    requirement: "mandatory"
+    mandatory: true
+    separate_filesystem_required: "yes"
+    expected_fstype: "JFS2 log"
+    min_size_bytes: 4000000
+    max_size_bytes: 256000000
+    size_source: {min: "4 MB", max: "256 MB"}
+    expected_mount_options: "N/A"
+    source_id: ["ibm-jfs2-log-device"]
+    notes: "hd8 JFS2 log device; default 1 physical partition (~4 MB); IBM recommends 2 MB per 1 GB of data protected; max 256 MB; typically INLINE with filesystem in modern AIX"
+  - mount_point: "N/A (dump)"
+    classification: "system"
+    requirement: "mandatory"
+    mandatory: true
+    separate_filesystem_required: "yes"
+    expected_fstype: "dump"
+    min_size_bytes: null
+    max_size_bytes: null
+    size_source: {min: "1.5x RAM", max: "unbounded"}
+    expected_mount_options: "N/A"
+    source_id: ["ibm-dump-devices"]
+    notes: "lg_dumplv (for systems with ≥ 4 GB memory) or hd6 (default). lg_dumplv recommended size: 1.5x estimated system memory for fluctuations. Stores system crash dumps."
+  - mount_point: "datavg (application)"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "conditional"
+    expected_fstype: "JFS2"
+    min_size_bytes: null
+    max_size_bytes: null
+    size_source: {min: "unbounded", max: "unbounded"}
+    expected_mount_options: "rw (default)"
+    source_id: ["ibm-datavg-best-practice"]
+    notes: "Separate user-defined volume group (datavg) for application data and software; best practice to keep application data out of rootvg; enables easier backup, migration, and system cloning"
+sources:
+  ibm-release-notes-71:
+    title: "AIX 7.1 Release Notes and Installation Tips"
+    publisher: "IBM"
+    url: "https://www.ibm.com/docs/en/aix/7.1.0?topic=notes-aix-715-release"
+    version_or_date: "AIX 7.1 (7100-05 through 7.1 TL5)"
+    retrieved: true
+  ibm-logical-volumes:
+    title: "Logical volume storage and Volume groups concepts"
+    publisher: "IBM"
+    url: "https://www.ibm.com/docs/en/aix/7.2.0?topic=management-logical-volume-storage"
+    version_or_date: "AIX 7.1–7.3 Documentation"
+    retrieved: false
+  ibm-livedumps:
+    title: "AIX Livedumps"
+    publisher: "IBM Support"
+    url: "https://www.ibm.com/support/pages/aix-livedumps"
+    version_or_date: "AIX 6.1–7.3"
+    retrieved: true
+  ibm-paging-spaces:
+    title: "Paging spaces placement and sizes"
+    publisher: "IBM"
+    url: "https://www.ibm.com/docs/en/aix/7.2.0?topic=guidelines-paging-spaces-placement-sizes"
+    version_or_date: "AIX 7.1–7.3 Performance Guidelines"
+    retrieved: false
+  ibm-jfs2-log-device:
+    title: "Increasing the Size of a JFS/JFS2 Log Device"
+    publisher: "IBM Support"
+    url: "https://www.ibm.com/support/pages/increasing-size-jfsjfs2-log-device"
+    version_or_date: "AIX 7.1–7.3"
+    retrieved: true
+  ibm-dump-devices:
+    title: "Managing System Dump Devices"
+    publisher: "IBM Support"
+    url: "https://www.ibm.com/support/pages/managing-system-dump-devices"
+    version_or_date: "AIX 7.1–7.3"
+    retrieved: true
+  ibm-datavg-best-practice:
+    title: "Give rootvg the space it needs and datavg best practices"
+    publisher: "IBM Developer / IBM Support"
+    url: "https://www.ibm.com/developerworks/aix/library/au-rootvg/index.html"
+    version_or_date: "AIX 5L–7.3"
+    retrieved: false

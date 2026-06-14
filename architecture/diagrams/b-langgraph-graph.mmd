@@ -1,0 +1,85 @@
+%%{init: {'theme':'base','themeVariables':{'fontFamily':'Helvetica, Arial, sans-serif','fontSize':'13px','lineColor':'#9AA0A6','primaryTextColor':'#202124','clusterBkg':'#FAFBFC','clusterBorder':'#DADCE0'},'flowchart':{'curve':'basis','nodeSpacing':40,'rankSpacing':50,'htmlLabels':true,'padding':10}}}%%
+flowchart TD
+  S0(["START"]):::terminal
+
+  subgraph P1["1 · Ingestion &amp; validation"]
+    direction TB
+    ING["ingest_router"]:::rule
+    PJ["parse_json"]:::rule
+    PC["parse_csv"]:::rule
+  end
+
+  subgraph P2["2 · Normalization &amp; enrichment"]
+    direction TB
+    NORM["normalize<br/><small>account-specific naming</small>"]:::rule
+    ENR["enrich_derive<br/><small>vg_class, mount_category, used_pct…</small>"]:::rule
+  end
+
+  subgraph P3["3 · Forecasting (time series)"]
+    direction TB
+    HIST[("load_history")]:::store
+    FC["forecast<br/><small>growth_rate, days_to_full</small>"]:::rule
+  end
+
+  subgraph P4["4 · Reference &amp; classification"]
+    direction TB
+    REF[("load_reference_models<br/><small>golden images</small>")]:::store
+    CLS["classify<br/><small>storage_class: system / data</small>"]:::rule
+  end
+
+  subgraph P5["5 · Per-objective detection — fan-out (Send)"]
+    direction TB
+    DISP{"fanout_dispatcher"}:::decision
+    O1["O1 · standards"]:::rule
+    O2["O2 · optimization"]:::rule
+    O3["O3 · reliability"]:::rule
+    O4["O4 · efficiency"]:::rule
+    O5["O5 · risk"]:::rule
+  end
+
+  subgraph P6["6 · Aggregation &amp; LLM"]
+    direction TB
+    AGG["aggregate_dedup"]:::mixed
+    SEV["severity_scoring"]:::rule
+    LLM["llm_explain_recommend"]:::llm
+    VQ["build_validation_queue"]:::rule
+  end
+
+  subgraph P7["7 · Human validation"]
+    direction TB
+    HITL["hitl_validate<br/><small>interrupt → resume</small>"]:::human
+    APP["apply_decisions"]:::rule
+  end
+
+  subgraph P8["8 · Output &amp; feedback"]
+    direction TB
+    REP["generate_reports"]:::mixed
+    PF["persist_and_feedback"]:::store
+  end
+
+  S0 --> ING
+  ING -->|"json"| PJ
+  ING -->|"csv"| PC
+  PJ --> NORM
+  PC --> NORM
+  NORM --> ENR
+  ENR --> HIST --> FC
+  FC --> REF --> CLS
+  CLS --> DISP
+  DISP -->|"Send"| O1 & O2 & O3 & O4 & O5
+  O1 & O2 & O3 & O4 & O5 --> AGG
+  AGG --> SEV --> LLM --> VQ
+  VQ --> ROUTE{"validation_queue<br/>empty?"}:::decision
+  ROUTE -->|"not empty"| HITL --> APP --> REP
+  ROUTE -->|"empty"| REP
+  REP --> PF
+  PF -.->|"decisions → recalibration"| REF
+  PF --> FIN(["END"]):::terminal
+
+  classDef terminal fill:#202124,stroke:#202124,color:#ffffff;
+  classDef rule fill:#E6F4EA,stroke:#1E8E3E,color:#0B5323;
+  classDef llm fill:#F3E8FD,stroke:#8430CE,color:#4A148C;
+  classDef human fill:#FEF3E0,stroke:#E37400,color:#7A3E00;
+  classDef decision fill:#FFF8E1,stroke:#F9A825,color:#5F4300;
+  classDef store fill:#E0F7FA,stroke:#00838F,color:#00474E;
+  classDef mixed fill:#EDE7F6,stroke:#5E35B1,color:#311B92;

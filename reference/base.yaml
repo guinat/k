@@ -1,0 +1,261 @@
+# =============================================================================
+# reference/base.yaml  —  golden image (source-derived)
+# Layer: ROOT  |  FHS / CIS baseline FHS 3.0 + CIS baseline (Linux Foundation / CIS)
+# Généré depuis docs/storage-standards (recherche sourcée). Tailles en OCTETS
+# (interprétation de la chaîne source conservée dans size_source).
+# À VÉRIFIER contre les sources citées (section 'sources') avant de figer.
+# =============================================================================
+model_id: base
+parent: null
+os_family: "FHS / CIS baseline"
+os_version: "FHS 3.0 + CIS baseline (Linux Foundation / CIS)"
+swap_guidance: "FHS 3.0 does not specify swap sizing. Debian recommends swap equal to RAM (minimum 512 MB). Red Hat's modern guidance (applicable across distributions) for systems with 16-64 GB RAM: 4-8 GB swap. For hibernation, allocate swap >= RAM."
+notes: "FHS 3.0 (Filesystem Hierarchy Standard): FHS 3.0 is the reference standard defining the hierarchy and purposes of directories across Unix-like systems. The standard itself does NOT specify minimum/maximum partition sizes—those decisions are left to system administrators and distributions. FHS was republished by FreeDesktop in November 2025. Key principle: /usr and /var are designed to be mounted on separate filesystems; /var is required separate from /usr to allow /usr to be mounted read-only. | CIS Benchmark for Linux (General Framework): CIS Benchmarks (Center for Internet Security) define security hardening controls for Linux distributions. Section 1.1 covers filesystem configuration with mandatory separate partitions and mount options. Applies to RHEL, Ubuntu, Debian, CentOS, Oracle Linux, etc. CIS controls are risk-based security requirements, not default installations. | Red Hat Enterprise Linux (RHEL 8, 9, 10) - Vendor Guidance: RHEL 8, 9, 10 default to XFS filesystem for all partitions except /boot/efi (vfat). XFS is recommended for production systems, large files, and high I/O concurrency. ext4 supported as alternative for smaller systems. RHEL provides detailed installation guidance; CIS Benchmark controls apply for hardening. | Ubuntu & Debian - Vendor Guidance: Ubuntu and Debian default to ext4 filesystem. Ubuntu installer offers options for LVM and encryption. Debian Installer follows FHS and Securing Debian Manual recommendations. CIS Benchmarks for Ubuntu 20.04/22.04/24.04 align with partition controls but Debian/Ubuntu favor ext4 over XFS for desktop/server balance. | SUSE Linux Enterprise Server (SLES 15.x) - Vendor Guidance: SUSE defaults to Btrfs with snapshots for root partition (modern rollback capability) and XFS for additional partitions. Btrfs subvolumes (/, /home, /opt, /srv, /var, /usr/local) provide snapshot isolation without separate filesystems. SUSE Expert Partitioner offers flexible configuration."
+expected_filesystems:
+  - mount_point: "/"
+    classification: "system"
+    requirement: "mandatory"
+    mandatory: true
+    separate_filesystem_required: "no"
+    expected_fstype: "ext4 or XFS"
+    min_size_bytes: null
+    max_size_bytes: null
+    size_source: {min: "unbounded", max: "unbounded"}
+    expected_mount_options: "defaults"
+    source_id: ["FHS3.0-ch03"]
+    notes: "Root filesystem must contain essential files to boot, restore, recover, and repair the system. Contains /etc, /bin, /sbin, /lib, and other critical system files."
+  - mount_point: "/usr"
+    classification: "system"
+    requirement: "mandatory"
+    mandatory: true
+    separate_filesystem_required: "conditional"
+    expected_fstype: "ext4 or XFS"
+    min_size_bytes: null
+    max_size_bytes: null
+    size_source: {min: "unbounded", max: "unbounded"}
+    expected_mount_options: "defaults,ro (read-only recommended)"
+    source_id: ["FHS3.0-ch04"]
+    notes: "Secondary hierarchy containing user programs, libraries, and documentation. FHS states /usr should be shareable, read-only data. Optional separate partition recommended for easier management and to mount read-only."
+  - mount_point: "/var"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "yes"
+    expected_fstype: "ext4 or XFS"
+    min_size_bytes: 3221225472
+    max_size_bytes: null
+    size_source: {min: "3 GiB", max: "unbounded"}
+    expected_mount_options: "defaults"
+    source_id: ["FHS3.0-ch05", "Debian-secure-manual"]
+    notes: "Variable state information: logs, caches, mail spools, package caches (apt/yum). Separate partition prevents logs from filling root filesystem. Debian recommends larger allocation due to package cache in /var/cache/apt/archives."
+  - mount_point: "/var/log"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "yes"
+    expected_fstype: "ext4 or XFS"
+    min_size_bytes: 5368709120
+    max_size_bytes: null
+    size_source: {min: "5 GiB", max: "unbounded"}
+    expected_mount_options: "defaults,nodev,nosuid,noexec"
+    source_id: ["CIS-Linux-partition", "FHS3.0-ch05"]
+    notes: "Separate partition protects audit logs and system logs from root filesystem exhaustion. Default systemd journal size limited to 10% of partition size, capped at 4 GiB. CIS Benchmark mandatory control 1.1.5/1.1.6."
+  - mount_point: "/var/log/audit"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "yes"
+    expected_fstype: "ext4 or XFS"
+    min_size_bytes: 2147483648
+    max_size_bytes: null
+    size_source: {min: "2 GiB", max: "unbounded"}
+    expected_mount_options: "defaults,nodev,nosuid,noexec"
+    source_id: ["CIS-Linux-partition", "TechGirlKB"]
+    notes: "Separate partition for audit logs (auditd) protects against resource exhaustion and data loss. CIS Benchmark mandatory control 1.1.6/1.1.7. Mount options prevent device files, SUID bits, and executable binaries."
+  - mount_point: "/var/tmp"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "conditional"
+    expected_fstype: "ext4 or XFS"
+    min_size_bytes: 1073741824
+    max_size_bytes: null
+    size_source: {min: "1 GiB", max: "unbounded"}
+    expected_mount_options: "defaults,nodev,nosuid,noexec,bind (or symlink to /tmp)"
+    source_id: ["CIS-Linux-partition", "Debian-secure-manual"]
+    notes: "Temporary files that persist between reboots (contrast to /tmp). CIS Benchmark requires separate partition OR bind mount from /tmp with nodev,nosuid,noexec. Best practice: bind /var/tmp to /tmp to avoid duplicate filesystem."
+  - mount_point: "/tmp"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "yes"
+    expected_fstype: "ext4 or XFS"
+    min_size_bytes: 1073741824
+    max_size_bytes: null
+    size_source: {min: "1 GiB", max: "unbounded"}
+    expected_mount_options: "defaults,nodev,nosuid,noexec"
+    source_id: ["FHS3.0-ch03", "CIS-Linux-partition"]
+    notes: "Temporary file storage cleared between system boots (recommended but not required by FHS). Separate partition prevents application temp files from filling root. CIS Benchmark mandatory control 1.1.2/1.1.3. Mount options prevent SUID binaries and device files."
+  - mount_point: "/home"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "yes"
+    expected_fstype: "ext4 or XFS"
+    min_size_bytes: 10737418240
+    max_size_bytes: null
+    size_source: {min: "10 GiB", max: "unbounded"}
+    expected_mount_options: "defaults,nodev,nosuid"
+    source_id: ["FHS3.0-ch03", "CIS-Linux-partition", "Debian-secure-manual"]
+    notes: "User home directories (optional per FHS but strongly recommended). Separate partition allows system reinstallation without data loss. CIS Benchmark requires nodev,nosuid. Debian: large partition recommended for multi-user systems."
+  - mount_point: "/boot"
+    classification: "boot"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "conditional"
+    expected_fstype: "ext4 or XFS"
+    min_size_bytes: 262144000
+    max_size_bytes: 1073741824
+    size_source: {min: "250 MiB", max: "1 GiB"}
+    expected_mount_options: "defaults,nodev,nosuid,noexec"
+    source_id: ["RHEL-install-guide", "FHS3.0-ch03", "CIS-Linux-partition"]
+    notes: "Static boot files: kernel images, bootloader data, initramfs. Red Hat: 250 MB sufficient for most systems (each kernel ~30 MB). UEFI systems may allocate 500MB-1GB. Separate /boot/efi 50-150 MB for UEFI. CIS Benchmark recommends nodev,nosuid,noexec."
+  - mount_point: "/boot/efi"
+    classification: "boot"
+    requirement: "conditional"
+    mandatory: false
+    separate_filesystem_required: "yes"
+    expected_fstype: "EFI System Partition (FAT32/vfat)"
+    min_size_bytes: 52428800
+    max_size_bytes: 157286400
+    size_source: {min: "50 MiB", max: "150 MiB"}
+    expected_mount_options: "defaults,nodev,nosuid,noexec"
+    source_id: ["RHEL-install-guide"]
+    notes: "UEFI systems only. EFI firmware partition. Not applicable to legacy BIOS systems."
+  - mount_point: "/run"
+    classification: "system"
+    requirement: "mandatory"
+    mandatory: true
+    separate_filesystem_required: "no"
+    expected_fstype: "tmpfs"
+    min_size_bytes: null
+    max_size_bytes: null
+    size_source: {min: "unbounded", max: "unbounded"}
+    expected_mount_options: "defaults,nosuid,nodev,mode=755"
+    source_id: ["FHS3.0-ch03"]
+    notes: "Runtime data describing the system since boot. Must be tmpfs or ramfs. Files cleared at boot. FHS 3.0 defines purpose and clearing requirements."
+  - mount_point: "/dev/shm"
+    classification: "system"
+    requirement: "mandatory"
+    mandatory: true
+    separate_filesystem_required: "no"
+    expected_fstype: "tmpfs"
+    min_size_bytes: null
+    max_size_bytes: null
+    size_source: {min: "unbounded", max: "unbounded"}
+    expected_mount_options: "defaults,nosuid,nodev,noexec"
+    source_id: ["CIS-Linux-partition"]
+    notes: "Shared memory filesystem. CIS Benchmark mandatory control 1.1.15/1.1.16 requires noexec,nodev,nosuid mount options to prevent device files and executable code in shared memory."
+  - mount_point: "/opt"
+    classification: "data"
+    requirement: "optional"
+    mandatory: false
+    separate_filesystem_required: "conditional"
+    expected_fstype: "ext4 or XFS"
+    min_size_bytes: null
+    max_size_bytes: null
+    size_source: {min: "unbounded", max: "unbounded"}
+    expected_mount_options: "defaults"
+    source_id: ["FHS3.0-ch06"]
+    notes: "Add-on application software packages. Each package uses /opt/<package> or /opt/<provider>. Optional separate partition useful for preserving third-party software during system reinstalls (SUSE recommendation)."
+  - mount_point: "/srv"
+    classification: "data"
+    requirement: "optional"
+    mandatory: false
+    separate_filesystem_required: "conditional"
+    expected_fstype: "ext4 or XFS"
+    min_size_bytes: null
+    max_size_bytes: null
+    size_source: {min: "unbounded", max: "unbounded"}
+    expected_mount_options: "defaults"
+    source_id: ["FHS3.0-ch07"]
+    notes: "Site-specific data served by services (web, FTP, mail). Optional separate partition for service data. SUSE recommends separate mount point to preserve service data during system reinstalls."
+  - mount_point: "/usr/local"
+    classification: "data"
+    requirement: "optional"
+    mandatory: false
+    separate_filesystem_required: "conditional"
+    expected_fstype: "ext4 or XFS"
+    min_size_bytes: null
+    max_size_bytes: null
+    size_source: {min: "unbounded", max: "unbounded"}
+    expected_mount_options: "defaults"
+    source_id: ["FHS3.0-ch04", "Debian-secure-manual"]
+    notes: "Locally compiled software and manual installations. Optional separate partition if frequent non-package software installations expected. Debian/SUSE recommend separate partition to preserve during system upgrades."
+  - mount_point: "/etc"
+    classification: "system"
+    requirement: "mandatory"
+    mandatory: true
+    separate_filesystem_required: "no"
+    expected_fstype: "ext4 or XFS"
+    min_size_bytes: null
+    max_size_bytes: null
+    size_source: {min: "unbounded", max: "unbounded"}
+    expected_mount_options: "defaults"
+    source_id: ["FHS3.0-ch03"]
+    notes: "Host-specific system configuration files (static, non-executable). Must remain on root filesystem. FHS prohibits binaries in /etc; scripts permitted."
+sources:
+  FHS3.0-ch03:
+    title: "Filesystem Hierarchy Standard 3.0 - Chapter 3: The Root Filesystem"
+    publisher: "Linux Foundation"
+    url: "https://refspecs.linuxfoundation.org/FHS_3.0/fhs/ch03.html"
+    version_or_date: "FHS 3.0 (published June 2015, republished by FreeDesktop November 2025)"
+    retrieved: true
+  FHS3.0-ch04:
+    title: "Filesystem Hierarchy Standard 3.0 - Chapter 4: The /usr Hierarchy"
+    publisher: "Linux Foundation"
+    url: "https://refspecs.linuxfoundation.org/FHS_3.0/fhs-3.0.txt"
+    version_or_date: "FHS 3.0"
+    retrieved: true
+  FHS3.0-ch05:
+    title: "Filesystem Hierarchy Standard 3.0 - Chapter 5: The /var Hierarchy"
+    publisher: "Linux Foundation"
+    url: "https://refspecs.linuxfoundation.org/FHS_3.0/fhs/ch05.html"
+    version_or_date: "FHS 3.0"
+    retrieved: false
+  Debian-secure-manual:
+    title: "Securing Debian Manual - Partitioning the System"
+    publisher: "Debian Project"
+    url: "https://www.debian.org/doc/manuals/securing-debian-manual/ch03s02.en.html"
+    version_or_date: "Debian Security Manual"
+    retrieved: true
+  CIS-Linux-partition:
+    title: "CIS Benchmark - Linux Filesystem Partitions"
+    publisher: "Center for Internet Security"
+    url: "https://breadandwater.dev/cis-benchmark-linux-filesystem-partitions/"
+    version_or_date: "2024-2026"
+    retrieved: false
+  TechGirlKB:
+    title: "How to Create CIS-Compliant Partitions on AWS"
+    publisher: "TechGirlKB (practitioner guide)"
+    url: "https://techgirlkb.guru/2019/08/how-to-create-cis-compliant-partitions-on-aws/"
+    version_or_date: "2019-2026"
+    retrieved: true
+  RHEL-install-guide:
+    title: "Red Hat Enterprise Linux 8, 9, 10 - Installation Guide: Partitioning Reference"
+    publisher: "Red Hat"
+    url: "https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/managing_storage_devices/disk-partitions"
+    version_or_date: "RHEL 8/9/10 (2024-2026)"
+    retrieved: false
+  FHS3.0-ch06:
+    title: "Filesystem Hierarchy Standard 3.0 - /opt and /srv"
+    publisher: "Linux Foundation"
+    url: "https://refspecs.linuxfoundation.org/FHS_3.0/fhs-3.0.html"
+    version_or_date: "FHS 3.0"
+    retrieved: true
+  FHS3.0-ch07:
+    title: "Filesystem Hierarchy Standard 3.0 - /srv Data Directory"
+    publisher: "Linux Foundation"
+    url: "https://refspecs.linuxfoundation.org/FHS_3.0/fhs-3.0.html"
+    version_or_date: "FHS 3.0"
+    retrieved: true

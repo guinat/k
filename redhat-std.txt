@@ -1,0 +1,17 @@
+
+RHEL 9
+/boot : 500MB - 1GB
+/     : 10GB - 20GB
+/var  : 10GB - 15GB+
+/home : Variable
+/tmp  : 2GB - 5GB
+swap  : 2GB - 16GB
+
+RHEL 8
+/boot     : 1GB - 2GB
+/boot/efi : 500MB - 600MB
+/         : 10GB - 20GB
+/var      : 10GB - 20GB
+/tmp      : 2GB - 5GB
+/home     : 10GB+
+swap      : 2GB - 16GB

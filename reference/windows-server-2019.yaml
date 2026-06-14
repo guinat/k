@@ -1,0 +1,101 @@
+# =============================================================================
+# reference/windows-server-2019.yaml  —  golden image (source-derived)
+# Layer: ROOT  |  Windows Server 2019
+# Généré depuis docs/storage-standards (recherche sourcée). Tailles en OCTETS
+# (interprétation de la chaîne source conservée dans size_source).
+# À VÉRIFIER contre les sources citées (section 'sources') avant de figer.
+# =============================================================================
+model_id: windows-server-2019
+parent: null
+os_family: "Windows Server"
+os_distribution: ["WindowsServer"]
+os_version: "2019"
+default_fstype: "NTFS"
+swap_guidance: "Pagefile sizing depends on crash dump settings and peak system commit charge. For complete memory dump: minimum 1x RAM plus 257 MB. System-managed pagefiles range from RAM/8 (max 32 GB) minimum to 3x RAM or 4 GB maximum (whichever larger). Modern recommendation: size based on actual system committed memory usage, not arbitrary RAM multiplier. Location: C: drive by default."
+notes: "Windows Server 2019 inherits the same partitioning scheme as 2016 with UEFI/GPT as default. BitLocker fully integrated with NTFS volumes. Storage Spaces and ReFS available with improved block cloning and performance features compared to 2016."
+expected_filesystems:
+  - mount_point: "EFI System Partition (ESP)"
+    classification: "boot"
+    requirement: "mandatory"
+    mandatory: true
+    separate_filesystem_required: "yes"
+    expected_fstype: "FAT32"
+    min_size_bytes: 200000000
+    max_size_bytes: null
+    size_source: {min: "200 MB", max: "unbounded"}
+    expected_mount_options: "N/A"
+    source_id: ["ms-uefi-gpt-config"]
+    notes: "Required for UEFI/GPT-based systems. Microsoft documentation recommends 260 MB or higher for reliability. Must be formatted FAT32 for UEFI platforms. System boot files only, no user data."
+  - mount_point: "Microsoft Reserved Partition (MSR)"
+    classification: "system"
+    requirement: "mandatory"
+    mandatory: true
+    separate_filesystem_required: "yes"
+    expected_fstype: "N/A"
+    min_size_bytes: 16000000
+    max_size_bytes: 128000000
+    size_source: {min: "16 MB", max: "128 MB"}
+    expected_mount_options: "N/A"
+    source_id: ["ms-uefi-gpt-config"]
+    notes: "Required for all GPT disks. Default size is 16 MB. Does not receive a drive letter. Cannot store user data. Used by Windows for partition management."
+  - mount_point: "C: (System/Windows Partition)"
+    classification: "system"
+    requirement: "mandatory"
+    mandatory: true
+    separate_filesystem_required: "yes"
+    expected_fstype: "NTFS"
+    min_size_bytes: 20000000000
+    max_size_bytes: null
+    size_source: {min: "20 GB", max: "unbounded"}
+    expected_mount_options: "N/A (BitLocker ACL enforcement, NTFS permissions)"
+    source_id: ["ms-hardware-reqs"]
+    notes: "Operating system and Windows files. Microsoft minimum is 20 GB for 64-bit versions. 32 GB is recommended as practical minimum for Server Core with full updates. Requires minimum 16 GB free space after OOBE. Must have sufficient space for paging, hibernation, and crash dumps (additional space required if RAM > 16 GB). NTFS is mandatory."
+  - mount_point: "Windows Recovery Environment (WinRE) Partition"
+    classification: "boot"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "yes"
+    expected_fstype: "NTFS"
+    min_size_bytes: 300000000
+    max_size_bytes: 1000000000
+    size_source: {min: "300 MB", max: "1 GB"}
+    expected_mount_options: "N/A"
+    source_id: ["ms-winre-partition"]
+    notes: "Minimum 300 MB required. 500-700 MB typical for winre.wim image depending on language/customizations. For Windows Server 2019: minimum 52 MB free space recommended (250 MB best practice, same as 2016). Separate from OS partition for BitLocker failover support. Type ID: DE94BBA4-06D1-4D40-A16A-BFD50179D6AC."
+  - mount_point: "D: and beyond (Data Volumes, optional)"
+    classification: "data"
+    requirement: "optional"
+    mandatory: false
+    separate_filesystem_required: "conditional"
+    expected_fstype: "NTFS or ReFS"
+    min_size_bytes: null
+    max_size_bytes: null
+    size_source: {min: "unbounded", max: "35 PB (ReFS) / 256 TB (NTFS)"}
+    expected_mount_options: "N/A (NTFS ACLs; ReFS for virtualized workloads)"
+    source_id: ["ms-volume-planning"]
+    notes: "Recommended to place after WinRE partition. NTFS supports up to 256 TB volumes. ReFS supports up to 35 PB but recommended limit is 64 TB for Storage Spaces Direct. For file server workloads with VSS backup, limit to 10 TB for performance."
+sources:
+  ms-uefi-gpt-config:
+    title: "UEFI/GPT-based hard drive partitions"
+    publisher: "Microsoft Learn"
+    url: "https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/configure-uefigpt-based-hard-drive-partitions?view=windows-11"
+    version_or_date: "2022-07-01 (updated 2026-05-18)"
+    retrieved: true
+  ms-hardware-reqs:
+    title: "Hardware Requirements for Windows Server"
+    publisher: "Microsoft Learn"
+    url: "https://learn.microsoft.com/en-us/windows-server/get-started/hardware-requirements"
+    version_or_date: "2025-07-02 (updated 2026-02-16)"
+    retrieved: true
+  ms-winre-partition:
+    title: "Disk partition requirement for using Windows RE tools on a UEFI-based computer"
+    publisher: "Microsoft Learn"
+    url: "https://learn.microsoft.com/en-us/troubleshoot/windows-client/windows-security/disk-partition-requirement-use-windows-re-tool"
+    version_or_date: "2026-02-12 (updated 2026-02-19)"
+    retrieved: true
+  ms-volume-planning:
+    title: "Plan volumes on Azure Local and Windows Server clusters"
+    publisher: "Microsoft Learn"
+    url: "https://learn.microsoft.com/en-us/windows-server/storage/storage-spaces/plan-volumes"
+    version_or_date: "2026-03-09 (updated 2026-04-15)"
+    retrieved: true

@@ -1,0 +1,37 @@
+%%{init: {'theme':'base','themeVariables':{'fontFamily':'Helvetica, Arial, sans-serif','fontSize':'13px','lineColor':'#9AA0A6','primaryTextColor':'#202124','clusterBkg':'#FAFBFC','clusterBorder':'#DADCE0'},'flowchart':{'curve':'basis','nodeSpacing':40,'rankSpacing':70,'htmlLabels':true,'padding':10}}}%%
+flowchart LR
+  SCHED["Scheduler<br/><small>daily runs / AWX-Tower</small>"]:::io --> ANS["Ansible / AWX-Tower<br/><small>playbooks + agents</small>"]:::io
+  ANS -->|"JSON per host + snapshot_id"| OBJS[("Object store / artifacts<br/><small>raw, append-only</small>")]:::store
+  OBJS --> APP
+
+  subgraph APP["LangGraph application — compiled StateGraph"]
+    direction TB
+    CORE["Graph<br/><small>rule + LLM nodes</small>"]:::mixed
+    CKPT[("Checkpointer<br/><small>Postgres / Redis</small>")]:::store
+    TS[("Time-series store<br/><small>snapshot history</small>")]:::store
+    GI[("Golden images<br/><small>machine-readable reference</small>")]:::store
+    CORE --- CKPT
+    CORE --- TS
+    CORE --- GI
+  end
+
+  APP --> LLMS["LLM API<br/><small>triage / explanation / recommendations</small>"]:::llm
+  LLMS --> APP
+
+  subgraph OUTS["Deliverables"]
+    direction TB
+    REP["Deviation reports<br/><small>severity</small>"]:::output
+    DASH["Dashboards / KPIs<br/><small>by account, env</small>"]:::output
+    SD["Structured data<br/><small>export / downstream API</small>"]:::output
+  end
+
+  APP --> REP & DASH & SD
+  REP --> ACC["Account teams<br/><small>HITL validation</small>"]:::human
+  ACC -.->|"Command(resume=decision)"| APP
+
+  classDef io fill:#E8F0FE,stroke:#1967D2,color:#0B3D91;
+  classDef llm fill:#F3E8FD,stroke:#8430CE,color:#4A148C;
+  classDef human fill:#FEF3E0,stroke:#E37400,color:#7A3E00;
+  classDef store fill:#E0F7FA,stroke:#00838F,color:#00474E;
+  classDef mixed fill:#EDE7F6,stroke:#5E35B1,color:#311B92;
+  classDef output fill:#E8EAF6,stroke:#3949AB,color:#1A237E;

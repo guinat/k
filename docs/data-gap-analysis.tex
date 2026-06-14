@@ -1,0 +1,591 @@
+\documentclass[11pt,a4paper]{article}
+
+% ------------------------------------------------------------------
+%  Encodage / langue / police
+% ------------------------------------------------------------------
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[french]{babel}
+\usepackage[strings]{underscore} % permet les _ litteraux dans le texte/\texttt
+
+% ------------------------------------------------------------------
+%  Mise en page
+% ------------------------------------------------------------------
+\usepackage[a4paper,margin=2.2cm,headheight=15pt]{geometry}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage[hidelinks,bookmarks=true]{hyperref}
+
+% ------------------------------------------------------------------
+%  Couleurs
+% ------------------------------------------------------------------
+\definecolor{cBlock}{HTML}{B00020} % bloquant / critique
+\definecolor{cHigh}{HTML}{C75300}  % haute
+\definecolor{cMed}{HTML}{8A6D00}   % moyenne
+\definecolor{cLow}{HTML}{5A5A5A}   % basse
+\definecolor{cOk}{HTML}{2E7D32}    % ok
+\definecolor{cAccent}{HTML}{1F4E79}
+\definecolor{boxbg}{HTML}{F4F6F8}
+\definecolor{rowalt}{HTML}{EEF2F6}
+\definecolor{rule}{HTML}{B9C2CC}
+
+% ------------------------------------------------------------------
+%  Etiquettes severite / priorite
+% ------------------------------------------------------------------
+\newcommand{\bloquant}{\textcolor{cBlock}{\textbf{BLOQUANT}}}
+\newcommand{\sevHigh}{\textcolor{cHigh}{\textbf{haute}}}
+\newcommand{\sevMed}{\textcolor{cMed}{moyenne}}
+\newcommand{\sevLow}{\textcolor{cLow}{basse}}
+\newcommand{\sevOk}{\textcolor{cOk}{ok}}
+\newcommand{\pCrit}{\textcolor{cBlock}{\textbf{critique}}}
+\newcommand{\pHigh}{\textcolor{cHigh}{\textbf{haute}}}
+\newcommand{\pMed}{\textcolor{cMed}{moyenne}}
+\newcommand{\pLow}{\textcolor{cLow}{basse}}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\priv}{\textsuperscript{\textcolor{cBlock}{\dag}}}
+
+% ------------------------------------------------------------------
+%  En-tete / pied de page
+% ------------------------------------------------------------------
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.2pt}
+\fancyhead[L]{\small\textcolor{cAccent}{\textbf{Capacity \& Deviation Detection}}}
+\fancyhead[R]{\small\textcolor{cLow}{Diagnostic des donn\'ees}}
+\fancyfoot[L]{\small\textcolor{cLow}{RootVG / DataVG --- m\'etadonn\'ees FS}}
+\fancyfoot[C]{\small\textcolor{cLow}{Confidentiel --- usage interne}}
+\fancyfoot[R]{\small\thepage}
+
+% ------------------------------------------------------------------
+%  Style des titres
+% ------------------------------------------------------------------
+\titleformat{\section}{\color{cAccent}\Large\bfseries}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\color{cAccent}\large\bfseries}{\thesubsection}{0.6em}{}
+\setlist{nosep,leftmargin=1.4em}
+
+% ------------------------------------------------------------------
+%  Listings (schemas / en-tetes)
+% ------------------------------------------------------------------
+\lstdefinestyle{schema}{
+  basicstyle=\ttfamily\footnotesize,
+  breaklines=true,
+  breakatwhitespace=false,
+  columns=fullflexible,
+  keepspaces=true,
+  frame=single,
+  rulecolor=\color{rule},
+  backgroundcolor=\color{boxbg},
+  xleftmargin=4pt,
+  xrightmargin=4pt,
+  framexleftmargin=2pt,
+  literate={;}{{\textcolor{cHigh}{;}}}1
+}
+\lstset{style=schema}
+
+% ------------------------------------------------------------------
+%  Boite callout simple
+% ------------------------------------------------------------------
+\newcommand{\callout}[2]{%
+  \begin{center}
+  \fcolorbox{rule}{boxbg}{%
+    \begin{minipage}{0.96\linewidth}
+    \textbf{\textcolor{cAccent}{#1}}\\[2pt]#2
+    \end{minipage}}
+  \end{center}}
+
+% ------------------------------------------------------------------
+%  Largeurs de colonnes reutilisables
+% ------------------------------------------------------------------
+\newcolumntype{C}{>{\ttfamily\footnotesize\raggedright\arraybackslash}p{3.0cm}}
+\newcolumntype{T}{>{\footnotesize\raggedright\arraybackslash}p{2.7cm}}
+\newcolumntype{P}{>{\footnotesize\centering\arraybackslash}p{1.3cm}}
+\newcolumntype{O}{>{\footnotesize\centering\arraybackslash}p{1.1cm}}
+\newcolumntype{F}{>{\footnotesize\raggedright\arraybackslash}p{7.6cm}}
+
+\renewcommand{\arraystretch}{1.25}
+
+% ==================================================================
+\begin{document}
+% ==================================================================
+
+\begin{titlepage}
+\centering
+\vspace*{2.2cm}
+{\color{cAccent}\rule{\linewidth}{1.4pt}}\\[0.5cm]
+{\Huge\bfseries\color{cAccent} Diagnostic des donn\'ees}\\[0.35cm]
+{\LARGE Gestion de capacit\'e \& d\'etection de d\'eviations}\\[0.2cm]
+{\large Syst\`emes de fichiers --- RootVG / DataVG (AIX \& Linux)}\\[0.4cm]
+{\color{cAccent}\rule{\linewidth}{1.4pt}}\\[1.2cm]
+
+\begin{minipage}{0.85\linewidth}
+\centering\itshape
+\'Etat des lieux du jeu de donn\'ees actuel (\code{data.csv}, en-t\^ete seul),
+de sa capacit\'e \`a r\'epondre aux cinq objectifs du projet, des champs manquants,
+et du sch\'ema cible recommand\'e pour la collecte par playbooks Ansible / agents IA.
+\end{minipage}\\[1.6cm]
+
+\begin{tabular}{rl}
+\textbf{Objet} & Analyse d'ad\'equation donn\'ees $\leftrightarrow$ objectifs\\
+\textbf{P\'erim\`etre} & M\'etadonn\'ees FS/VG non sensibles, $\geq$~500 serveurs\\
+\textbf{Sortie} & Sch\'ema de collecte + r\'ef\'erentiel \og golden image\fg{}\\
+\textbf{Date} & 12 juin 2026\\
+\textbf{Statut} & Diagnostic --- pr\'e-impl\'ementation\\
+\end{tabular}
+
+\vfill
+{\color{cLow}\small Document de travail --- usage interne}
+\end{titlepage}
+
+% ------------------------------------------------------------------
+\tableofcontents
+\thispagestyle{fancy}
+\clearpage
+
+% ==================================================================
+\section*{Synth\`ese}
+\addcontentsline{toc}{section}{Synth\`ese}
+% ==================================================================
+
+\callout{Verdict en une ligne}{Le sch\'ema actuel ne permet de r\'epondre \`a
+\textbf{aucun} des cinq objectifs de bout en bout. On compte \textbf{deux d\'efauts bloquants}
+(dont le probl\`eme des tailles en GB), \textbf{un \'etage entier} de la hi\'erarchie de stockage
+manquant (LV / PV / espace libre du VG), \textbf{aucun r\'ef\'erentiel} pour le sujet r\'eel
+(AIX rootvg/datavg), et \textbf{aucune dimension temporelle} pour la pr\'evision.}
+
+\medskip
+\noindent\textbf{Les sept points \`a retenir :}
+\begin{enumerate}[label=\textbf{\arabic*.}]
+  \item \textbf{rootvg / datavg = terminologie AIX.} Le parc contient tr\`es probablement de l'AIX,
+        or le seul r\'ef\'erentiel (\code{redhat-std.txt}) ne couvre que RHEL 8/9.
+  \item \textbf{Tailles en GB arrondies} : tout ce qui fait $<$~1~GB tombe \`a 0. \`A passer en octets.
+  \item \textbf{Aucune taille \og used\fg{}} ni espace libre du VG : la croissance n'est pas calculable.
+  \item \textbf{\'Etage LV/PV absent} : on saute \code{vg\_name} $\rightarrow$ \code{path}.
+  \item \textbf{Snapshot unique} : pas de s\'erie temporelle $\Rightarrow$ pas de pr\'evision.
+  \item \textbf{Pas de champs normalis\'es} (classification root/data, r\^ole de montage).
+  \item \textbf{Signaux conformit\'e \& donn\'ees mal plac\'ees absents} (options de montage, agr\'egats).
+\end{enumerate}
+
+% ==================================================================
+\section{L'insight principal : c'est de l'AIX}
+% ==================================================================
+
+\code{rootvg} et \code{datavg} sont de la terminologie LVM \textbf{AIX} (groupes de volumes,
+JFS2, commandes \code{lsvg} / \code{lslv} / \code{lspv}). Le parc m\'elange donc tr\`es
+probablement \textbf{AIX et Linux}. Or le seul mod\`ele de r\'ef\'erence fourni
+(\code{redhat-std.txt}) ne couvre que \textbf{RHEL 8 et 9}.
+
+\medskip
+\callout{Cons\'equence}{Pour la majorit\'e des h\^otes, l'\'etape \og comparer au mod\`ele de
+r\'ef\'erence\fg{} n'aura \textbf{rien \`a quoi comparer}. Le syst\`eme conclura \og conforme\fg{}
+\`a tort (faux n\'egatifs silencieux). C'est le plus gros trou, devant m\^eme le probl\`eme de taille,
+car il touche l'objet central du projet.}
+
+% ==================================================================
+\section{Les deux d\'efauts bloquants}
+% ==================================================================
+
+\subsection{\code{size\_total\_gb} et \code{size\_available\_gb} $\rightarrow$ passer en octets}
+
+Le probl\`eme rep\'er\'e sur \code{size\_available\_gb} touche \textbf{aussi}
+\code{size\_total\_gb}. Trois d\'efauts cumul\'es :
+
+\begin{center}
+\begin{tabularx}{\linewidth}{>{\bfseries}p{4.0cm}X}
+\toprule
+Arrondi au GB entier & \code{/boot} (500\,MB--1\,GB), \code{/boot/efi} (500--600\,MB),
+\code{hd5} AIX ($\sim$24\,MB), ou tout FS presque plein $\rightarrow$ \textbf{tombent \`a 0}.
+Impossible de valider les standards sub-GB ni de d\'etecter un petit FS plein.\\
+\midrule
+GB ($10^9$) vs GiB ($2^{30}$) & Les OS rapportent en base-2, un label \og gb\fg{} sugg\`ere la base-10
+$\rightarrow$ \textbf{erreur syst\'ematique d'environ 7\,\%} sur tous les seuils.\\
+\midrule
+Pas de \code{size\_used} & On n'a que total + available. \code{used = total $-$ available} est
+\textbf{faux} d\`es qu'il y a des blocs r\'eserv\'es (ext4 r\'eserve $\sim$5\,\% \`a root).\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\medskip
+\noindent\textbf{Correctif :}
+\begin{itemize}
+  \item \code{size\_total\_bytes}, \code{size\_available\_bytes} et \code{size\_used\_bytes} ---
+        tous en \code{BIGINT} octets, \textbf{source de v\'erit\'e}.
+  \item Source sans perte : Linux \code{df -B1} (ou \code{ansible\_mounts[].size\_total/size\_available}),
+        LVM \code{vgs/lvs/pvs --units b --nosuffix}, AIX \code{df -k}\,$\times$\,1024 ou
+        \code{PP\_count}\,$\times$\,\code{PP\_size}.
+  \item \textbf{Ne pas utiliser} la fact Ansible \code{ansible\_lvm} (\code{size\_g}) : elle ne fournit
+        que des GB arrondis $\rightarrow$ elle reproduit exactement le bug. Tracer la source via
+        \code{collection\_method} pour rejeter les sources \og lossy\fg{} \`a l'ingestion.
+  \item Pour du lisible, garder un \code{*\_gib} \textbf{d\'eriv\'e} (base-2), jamais comme source.
+\end{itemize}
+
+\subsection{\code{entry\_type} : enum non d\'efini mais structurant}
+
+\code{entry\_type} pilote toute la logique aval (classification, calcul de capacit\'e, comparaison),
+mais son ensemble de valeurs l\'egales n'est document\'e nulle part. \textbf{\`A verrouiller avant
+toute collecte} : \code{FILESYSTEM \textbar{} SWAP/PAGING \textbar{} VG \textbar{} PV \textbar{} LV
+\textbar{} PSEUDO\_FS \textbar{} UNKNOWN}, avec le contrat \og quelles colonnes sont obligatoires /
+NULL par type\fg{} (ex. SWAP $\rightarrow$ \code{path} NULL ; VG $\rightarrow$ \code{path}/\code{fstype}
+NULL, taille au niveau VG).
+
+% ==================================================================
+\section{Audit des douze colonnes existantes}
+% ==================================================================
+
+\begin{center}
+\footnotesize
+\begin{longtable}{>{\ttfamily\footnotesize}p{2.6cm} >{\footnotesize\centering\arraybackslash}p{1.5cm} >{\footnotesize\raggedright\arraybackslash}p{5.7cm} >{\footnotesize\raggedright\arraybackslash}p{4.7cm}}
+\toprule
+\textbf{\normalfont Colonne} & \textbf{\normalfont S\'ev.} & \textbf{\normalfont Probl\`eme principal} & \textbf{\normalfont Correctif} \\
+\midrule
+\endhead
+gsma\_code & \sevMed & Format non d\'efini (casse/charset) ; peut identifier un client (RGPD). & Format strict valid\'e \`a l'ingestion ; pseudonymiser si identifiant. \\
+\rowcolor{rowalt}
+hostname & \sevHigh & FQDN vs court non fix\'e, non unique entre comptes, pas de cl\'e stable $\rightarrow$ double comptage du parc ($\geq$500). & Forme canonique (FQDN lowercase) \textbf{+ \code{host\_id}} stable. \\
+vg\_name & \sevHigh & Confond le nom OS et la classification root/data ; vide sur Linux sans LVM. & Garder brut \textbf{+ \code{vg\_class}} d\'eriv\'e. \\
+\rowcolor{rowalt}
+path & \sevHigh & \`A normaliser pour joindre le r\'ef\'erentiel ; pas de path pour swap ; peut contenir un nom client. & Doc \og point de montage\fg{} + \code{path\_normalized} + \code{mount\_category} ; tokeniser. \\
+device & \sevLow & Tr\`es d\'ependant de l'OS, volatil, bruit\'e. & D\'emoter en diagnostic + \code{device\_kind}. \\
+\rowcolor{rowalt}
+fstype & \sevMed & Pas de vocabulaire normalis\'e ; pseudo-FS m\'elang\'es aux vrais $\rightarrow$ faux positifs. & Enum lowercase + flag \code{is\_pseudo\_fs}. \\
+entry\_type & \sevHigh & Enum non d\'efini alors que toute la logique branche dessus. & Verrouiller un enum ferm\'e \textbf{avant} la collecte. \\
+\rowcolor{rowalt}
+size\_total\_gb & \bloquant & Arrondi GB $\Rightarrow$ sub-GB \`a 0 ; GB vs GiB. & \code{size\_total\_bytes} (octets). \\
+size\_available\_gb & \bloquant & Idem + aucune taille \og used\fg{} ; available vs free ambigu. & \code{size\_available\_bytes} + \code{size\_used\_bytes}. \\
+\rowcolor{rowalt}
+os\_family & \sevMed & Texte libre ; surtout aucun r\'ef\'erentiel hors RHEL. & Enum + router les OS sans golden image vers validation. \\
+os\_version & \sevMed & Format h\'et\'erog\`ene (RHEL \code{9.3} vs AIX \code{7200-05}). & Garder brut + \code{os\_major} d\'eriv\'e. \\
+\rowcolor{rowalt}
+scan\_timestamp & \sevHigh & Fuseau non sp\'ecifi\'e + snapshot unique $\Rightarrow$ pr\'evision impossible. & ISO-8601 UTC + \code{snapshot\_id} + mod\`ele append-only. \\
+\bottomrule
+\caption{Audit des colonnes pr\'esentes dans \code{data.csv}.}
+\end{longtable}
+\end{center}
+
+% ==================================================================
+\section{Ce qui manque, par finalit\'e}
+% ==================================================================
+
+L\'egende priorit\'e : \pCrit{} (un objectif est impossible sans ce champ),
+\pHigh{}, \pMed{}, \pLow{}. \quad
+\priv{} = champ \`a ne collecter qu'en \textbf{agr\'egat non sensible} (compteurs / sommes
+d'octets par tranche, jamais de noms de fichiers, chemins, propri\'etaires ou horodatages par fichier).
+
+% ------------------------------------------------------------------
+\subsection{A. C\oe ur capacit\'e}
+
+\begin{center}
+\begin{longtable}{C T O O F}
+\toprule
+\textbf{\normalfont Champ} & \textbf{\normalfont Type} & \textbf{\normalfont Prio} & \textbf{\normalfont Obj} & \textbf{\normalfont Finalit\'e} \\
+\midrule
+\endhead
+size\_total\_bytes & octets (uint64) & \pCrit & 1,3,4 & Capacit\'e totale sans perte ; d\'enominateur de l'utilisation et plafond d'une pr\'evision. \\
+\rowcolor{rowalt}
+size\_used\_bytes & octets (uint64) & \pCrit & 2,3,4,5 & Octets utilis\'es captur\'es directement (la soustraction est inexacte avec blocs r\'eserv\'es). \\
+size\_available\_bytes & octets (uint64) & \pCrit & 1,3,4 & Espace libre (dispo utilisateur non privil\'egi\'e) sans perte. \\
+\rowcolor{rowalt}
+used\_percent & d\'ecimal 0--100 & \pHigh & 3,4 & Utilisation = used/total ; signal de seuil/s\'ev\'erit\'e et m\'etrique phare des dashboards. \\
+reserved\_bytes & octets (nullable) & \pMed & 3,4 & Blocs r\'eserv\'es root ($\sim$5\,\% ext) ; donne le plafond effectif (ENOSPC). \\
+\rowcolor{rowalt}
+inodes\_total & entier (nullable) & \pMed & 3 & Un FS sature sur les inodes m\^eme avec des octets libres. \\
+inodes\_used & entier (nullable) & \pMed & 2,3 & Utilisation d'inodes ; aussi indicateur d'accumulation de petits fichiers. \\
+\bottomrule
+\end{longtable}
+\end{center}
+
+% ------------------------------------------------------------------
+\subsection{B. Hi\'erarchie VG $\rightarrow$ LV $\rightarrow$ PV (le sujet m\^eme du projet)}
+
+Aujourd'hui on saute directement \code{vg\_name} $\rightarrow$ \code{path}, en perdant l'\'etage LV
+\textbf{et} l'\'etage PV, et \textbf{sans} l'espace libre du VG. Sans cela, impossible de raisonner
+\og RootVG / DataVG\fg{} ni de dire si un FS peut grandir.
+
+\begin{center}
+\begin{longtable}{C T O O F}
+\toprule
+\textbf{\normalfont Champ} & \textbf{\normalfont Type} & \textbf{\normalfont Prio} & \textbf{\normalfont Obj} & \textbf{\normalfont Finalit\'e} \\
+\midrule
+\endhead
+vg\_size\_bytes & octets (uint64) & \pCrit & 1,3,4 & Capacit\'e totale du VG : plafond dur de croissance d'un LV. \\
+\rowcolor{rowalt}
+vg\_free\_bytes & octets (uint64) & \pCrit & 1,3,4 & \textbf{Signal de croissance n\textsuperscript{o}1} : extents libres $\rightarrow$ \code{lvextend} simple ; $\sim$0 $\rightarrow$ escalade achat disque. \\
+vg\_pv\_count & entier & \pMed & 1,3 & Nombre de PV/disques ; VG mono-PV = risque de r\'esilience. \\
+\rowcolor{rowalt}
+vg\_pe\_size\_bytes & octets & \pMed & 1,3 & Granularit\'e d'allocation (PE/PP) ; conversion PP$\rightarrow$octets sans perte. \\
+vg\_state & enum & \pMed & 1,3 & \'Etat/sant\'e du VG (active/inactive/exported/partial). \\
+\rowcolor{rowalt}
+lv\_name & cha\^ine & \pHigh & 1,2,4 & LV support du FS, distinct de path/device ; cible exacte d'un \code{lvextend}. \\
+lv\_size\_bytes & octets (uint64) & \pHigh & 1,3,4 & Taille allou\'ee du LV ; LV $>$ FS d\'etecte un FS non \'etendu. \\
+\rowcolor{rowalt}
+lv\_copies & entier & \pMed & 1,3 & Nombre de copies miroir ; LV critique non mirror\'e = d\'eviation. \\
+pv\_name & cha\^ine & \pMed & 1,3 & Disque/PV support du VG (AIX \code{hdiskN}, Linux \code{/dev/...}). \\
+\rowcolor{rowalt}
+pv\_free\_bytes & octets (uint64) & \pMed & 3,4 & Marge sur le PV : croissance possible sur disque existant vs nouvel achat. \\
+lv\_type & enum & \pLow & 1,5 & Type de LV/segment (jfs2/paging/boot/sysdump ; linear/striped/mirror). \\
+\rowcolor{rowalt}
+vg\_type & enum (nullable) & \pLow & 1,3 & AIX small/big/scalable ou LVM2 ; r\'egit les limites de croissance. \\
+vg\_max\_lvs & entier (nullable) & \pLow & 1,3 & Plafond AIX MAX LVs ; \'epuisement = d\'eviation de croissance. \\
+\rowcolor{rowalt}
+vg\_max\_pps & entier (nullable) & \pLow & 1,3 & Plafond AIX MAX PPs/PVs ; le VG peut ne plus grandir m\^eme avec disques. \\
+\bottomrule
+\end{longtable}
+\end{center}
+
+% ------------------------------------------------------------------
+\subsection{C. Identit\'e \& cl\'es}
+
+\begin{center}
+\begin{longtable}{C T O O F}
+\toprule
+\textbf{\normalfont Champ} & \textbf{\normalfont Type} & \textbf{\normalfont Prio} & \textbf{\normalfont Obj} & \textbf{\normalfont Finalit\'e} \\
+\midrule
+\endhead
+record\_id & UUID/hash & \pCrit & 1,4 & Cl\'e primaire par ligne ; les rapports/recos/validations r\'ef\'erencent une ligne pr\'ecise. \\
+\rowcolor{rowalt}
+host\_id & UUID/machine-id & \pCrit & 1,4 & Cl\'e h\^ote stable ; \'evite le double comptage des h\^otes renomm\'es (cible $\geq$500). \\
+record\_kind & enum vg/lv/pv/fs\_mount/swap & \pCrit & 1,3 & Discriminateur de la hi\'erarchie ; affine/remplace \code{entry\_type}. \\
+\rowcolor{rowalt}
+snapshot\_id & cha\^ine/uuid & \pHigh & 3,4 & Un run de collecte complet ; distingue \og FS supprim\'e\fg{} de \og non scann\'e\fg{}. \\
+\bottomrule
+\end{longtable}
+\end{center}
+
+% ------------------------------------------------------------------
+\subsection{D. Champs normalis\'es (l'\'etape \og normaliser\fg{} n'a aujourd'hui aucune colonne de sortie)}
+
+\begin{center}
+\begin{longtable}{C T O O F}
+\toprule
+\textbf{\normalfont Champ} & \textbf{\normalfont Type} & \textbf{\normalfont Prio} & \textbf{\normalfont Obj} & \textbf{\normalfont Finalit\'e} \\
+\midrule
+\endhead
+vg\_class & enum rootvg/datavg/... & \pCrit & 1,2,3,5 & Classification RootVG vs DataVG ; l'objet litt\'eral du projet, OS-agnostique. \\
+\rowcolor{rowalt}
+mount\_category & enum system/data/... & \pCrit & 2,5 & Cat\'egorise un path (syst\`eme vs data/app/user/boot) ; pivot du \og mal plac\'e\fg{}. \\
+path\_normalized & cha\^ine & \pHigh & 1,2 & Path canonique ; joint au point de montage du golden image (\'evite faux positifs). \\
+\rowcolor{rowalt}
+vg\_name\_normalized & cha\^ine & \pHigh & 1,2 & Nom VG canonique (pr\'efixes/suffixes compte retir\'es) ; alimente \code{vg\_class}. \\
+hostname\_normalized & cha\^ine & \pHigh & 1,4 & Hostname canonique malgr\'e les conventions de nommage incoh\'erentes (risque projet). \\
+\rowcolor{rowalt}
+os\_major & entier/court & \pHigh & 1 & Version majeure d\'eriv\'ee ; join de standard d\'eterministe (RHEL8 vs 9). \\
+os\_distribution & enum & \pHigh & 1 & Distro pr\'ecise (RHEL/Ubuntu/SLES/AIX) ; \code{os\_family} trop grossier. \\
+\rowcolor{rowalt}
+host\_role\_env & enum prod/test/... & \pHigh & 3,4,5 & Environnement : un \code{/var} plein en prod est critique, en sandbox non. \\
+device\_kind & enum & \pLow & 1 & Compagnon cat\'egoriel de \code{device} (LVM\_LV/PARTITION/NFS/...). \\
+\rowcolor{rowalt}
+architecture & enum & \pLow & 1 & x86\_64-uefi/bios, ppc64le ; cadre les r\`egles conditionnelles (\code{/boot/efi} UEFI). \\
+\bottomrule
+\end{longtable}
+\end{center}
+
+% ------------------------------------------------------------------
+\subsection{E. S\'erie temporelle \& pr\'evision (obj. 3 \& 4)}
+
+Le sch\'ema actuel ne contient \textbf{qu'un snapshot}. Une pr\'evision a besoin de plusieurs points
+dans le temps ($\sim$14 points quotidiens cons\'ecutifs avant une projection fiable).
+
+\begin{center}
+\begin{longtable}{C T O O F}
+\toprule
+\textbf{\normalfont Champ} & \textbf{\normalfont Type} & \textbf{\normalfont Prio} & \textbf{\normalfont Obj} & \textbf{\normalfont Finalit\'e} \\
+\midrule
+\endhead
+projected\_days\_to\_full & jours (nullable) & \pHigh & 3,4 & Livrable phare : (plafond effectif $-$ used)/vitesse ; pilote la priorisation. \\
+\rowcolor{rowalt}
+growth\_rate\_bytes\_per\_day & octets/j sign\'e & \pLow & 3,4 & Pente de \code{used\_bytes} sur fen\^etre glissante ; feature explicable, n\'egative au nettoyage. \\
+is\_full\_flag & bool\'een & \pLow & 3 & FS d\'ej\`a au plafond (incident MAINTENANT vs pr\'evu) ; v\'erit\'e terrain pour backtest. \\
+\rowcolor{rowalt}
+is\_readonly\_flag & bool\'een & \pLow & 3 & Montage RO : ne peut pas grandir ; \'evite une reco \og \'etendre ce LV\fg{} absurde. \\
+\bottomrule
+\end{longtable}
+\end{center}
+
+% ------------------------------------------------------------------
+\subsection{F. Conformit\'e \& donn\'ees mal plac\'ees (obj. 2 \& 5 --- inexprimables aujourd'hui)}
+
+\begin{center}
+\begin{longtable}{C T O O F}
+\toprule
+\textbf{\normalfont Champ} & \textbf{\normalfont Type} & \textbf{\normalfont Prio} & \textbf{\normalfont Obj} & \textbf{\normalfont Finalit\'e} \\
+\midrule
+\endhead
+mount\_options & cha\^ine (tokens) & \pHigh & 1,5 & Drapeaux ro/nodev/nosuid/noexec ; conformit\'e CIS (\code{/tmp} sans noexec, etc.). \\
+\rowcolor{rowalt}
+is\_separate\_filesystem & bool\'een & \pHigh & 1,3,5 & CIS exige \code{/tmp},\code{/var/log},\code{/home} s\'epar\'es ; sinon risque DoS root. \\
+system\_partition\_unexpected\_usage\_bytes & octets & \pHigh & 2,5 & Octets hors sous-r\'epertoires OS attendus : quantifie \og donn\'ees client sur partition syst\`eme\fg{} sans nommer aucun fichier. \\
+\rowcolor{rowalt}
+data\_present\_on\_system\_flag & bool\'een & \pHigh & 2,5 & Rollup : contenu data/app sur une partition syst\`eme ; finding phare agr\'egeable. \\
+is\_pseudo\_fs & bool\'een & \pMed & 1 & Exclut tmpfs/proc/sysfs : \'evite des volumes de faux positifs. \\
+\rowcolor{rowalt}
+is\_network\_filesystem & bool\'een & \pMed & 1,2,5 & FS distant (nfs/cifs) : placement anormal ; exclu des r\`egles locales. \\
+mtime\_age\_histogram\priv & objet (bucket$\rightarrow$count,bytes) & \pMed & 2,4 & Histogramme d'\^age (obsolescence) ; uniquement compteurs+octets par tranche. \\
+\rowcolor{rowalt}
+large\_alloc\_histogram\priv & objet (band$\rightarrow$count,bytes) & \pMed & 2 & Grosses allocations (cores, vieux backups, dumps) sans noms. \\
+child\_dir\_usage\_aggregates\priv & objet (subdir$\rightarrow$bytes) & \pMed & 2,4 & \code{du --max-depth=1} sur partitions syst\`eme ; localise le volume. \\
+\rowcolor{rowalt}
+last\_modified\_age\_days\priv & entier jours & \pMed & 2 & \^Age du contenu le plus r\'ecent (max mtime) ; FS data inchang\'e = candidat obsol\`ete. \\
+world\_writable\_dir\_count\priv & entier & \pMed & 5 & Compte de r\'epertoires world-writable ; durcissement CIS. \\
+\rowcolor{rowalt}
+data\_owner\_hint\priv & enum & \pLow & 2,5 & Indice non identifiant data-sur-syst\`eme ; largement redondant avec le flag (optionnel). \\
+\bottomrule
+\end{longtable}
+\end{center}
+
+% ------------------------------------------------------------------
+\subsection{G. Sorties d'analyse (\`a placer dans une table s\'epar\'ee, pas dans la donn\'ee brute)}
+
+\begin{center}
+\begin{longtable}{C T O O F}
+\toprule
+\textbf{\normalfont Champ} & \textbf{\normalfont Type} & \textbf{\normalfont Prio} & \textbf{\normalfont Obj} & \textbf{\normalfont Finalit\'e} \\
+\midrule
+\endhead
+deviation\_type & enum & \pHigh & 1,2,5 & Cat\'egorie d'\'ecart (missing/extra mount, under/oversized, data\_on\_system, no\_reference...). \\
+\rowcolor{rowalt}
+severity & enum & \pHigh & 1,3 & S\'ev\'erit\'e exig\'ee par le livrable \og rapports avec s\'ev\'erit\'e\fg{}. \\
+confidence\_score & flottant 0--1 & \pHigh & 1 & D\'eclenche l'\'etape \og valider les faibles confiances avec les \'equipes\fg{} (human-in-the-loop). \\
+\rowcolor{rowalt}
+golden\_image\_id & cha\^ine & \pHigh & 1 & R\'ef\'erence du mod\`ele compar\'e ; rend la comparaison auditable, expose les \og sans r\'ef\'erence\fg{}. \\
+recommendation\_text & cha\^ine & \pMed & 2,4 & Reco actionnable (grandir LV, migrer data, supprimer obsol\`ete). \\
+\rowcolor{rowalt}
+validation\_status & enum & \pMed & 1 & R\'esultat de validation \'equipe compte ; r\'einjecte confirm\'e/faux positif dans l'entra\^inement. \\
+scan\_confidence & 0--1 / enum & \pMed & 1 & Compl\'etude du collecteur (du partiel, montage saut\'e) ; \'evite des escalades de faux positifs. \\
+\rowcolor{rowalt}
+collection\_method & enum & \pMed & 1,3 & Source de collecte ; permet de rejeter \code{ansible\_lvm} (GB arrondi) \`a l'ingestion. \\
+\bottomrule
+\end{longtable}
+\end{center}
+
+% ==================================================================
+\section{Le r\'ef\'erentiel : trous \`a combler}
+% ==================================================================
+
+\begin{enumerate}[label=\textbf{\arabic*.}]
+  \item \textbf{Aucun golden image AIX} alors que rootvg/datavg = AIX. \`A \'ecrire :
+        \code{hd4=/}, \code{hd2=/usr}, \code{hd9var=/var}, \code{hd3=/tmp}, \code{hd1=/home},
+        \code{hd10opt=/opt}, \code{hd11admin=/admin}, \code{hd5}=boot ($\sim$24\,MB),
+        \code{hd6}=paging, \code{hd8}=jfs2log, + \code{/var/adm/ras}, LV de dump.
+        \textbf{datavg doit \^etre S\'EPAR\'E de rootvg} --- c'est le signal de mauvais placement central.
+  \item \textbf{Aucun standard non-RHEL} : Ubuntu/Debian (ext4, pas xfs), SLES, Oracle Linux, Rocky/Alma.
+  \item \textbf{Points de montage manquants} dans le standard RHEL : \code{/usr}, \code{/opt},
+        \code{/var} (FHS) ; \code{/var/log}, \code{/var/tmp}, \code{/var/log/audit} (CIS, s\'epar\'es) ;
+        \code{/srv}, \code{/data}.
+  \item \code{/boot/efi} pr\'esent pour RHEL 8 mais \textbf{absent pour RHEL 9} (toujours requis en
+        UEFI x86\_64) --- \`a ajouter, conditionnel \`a l'architecture.
+  \item \textbf{Le r\'ef\'erentiel est en prose, pas exploitable par machine.} Le transformer en lignes
+        joignables sur \code{os\_family + os\_major + expected\_mount\_point}, avec
+        \code{min\_size\_bytes}/\code{max\_size\_bytes} (sans perte ; le \og +\fg{} de \og 10-15GB+\fg{}
+        = max non born\'e / nullable, sinon faux positifs sur \code{/var}, \code{/home}),
+        \code{expected\_fstype}, \code{classification}, \code{separate\_filesystem\_required},
+        \code{expected\_mount\_options}, \code{severity\_weight}, \code{model\_version\_and\_source}.
+  \item \textbf{Chemin \og no\_reference\fg{}} : router explicitement vers la validation humaine
+        au lieu de conclure \og conforme\fg{} silencieusement.
+\end{enumerate}
+
+% ==================================================================
+\section{Recommandations structurelles}
+% ==================================================================
+
+\begin{itemize}
+  \item \textbf{JSON / JSONL plut\^ot que CSV} (d\'ej\`a la pr\'ef\'erence des objectifs) : un h\^ote a
+        $N$ VG $\rightarrow$ $N$ LV/PV $\rightarrow$ $N$ FS ; un CSV plat force des lignes h\'et\'erog\`enes
+        pleines de NULL et \textbf{ne peut pas} porter les agr\'egats imbriqu\'es (histogrammes).
+        Si CSV impos\'e $\rightarrow$ \'eclater en \textbf{plusieurs tables} : (1)~faits VG,
+        (2)~topologie LV/PV, (3)~faits FS-montage, (4)~r\'ef\'erentiel versionn\'e, (5)~findings.
+  \item \textbf{Store de faits FS = append-only}, cl\'e
+        \code{(host\_id, path, entry\_type, scan\_timestamp)}, jamais d'\'ecrasement d'un \og latest\fg{}.
+        Cadence quotidienne ; $\sim$500 serveurs $\times$ $\sim$30 chemins/jour $\approx$ 5,5\,M lignes/an
+        --- trivial en Parquet/BigQuery partitionn\'e par date.
+  \item \textbf{S\'eparer les sorties d'analyse} (\S\,5.G) des faits bruts immuables, sinon relancer
+        la d\'etection \'ecrase l'historique.
+  \item \textbf{Octets partout} (FS, LV, VG, PV), d\'epr\'ecier tout \code{*\_gb}.
+  \item \textbf{Verrouiller l'enum \code{entry\_type}/\code{record\_kind}} \emph{avant} la collecte.
+  \item \textbf{Passe de normalisation + tokenisation} des segments identifiants
+        (\code{/data/\{client\}}, \code{/sapmnt/\{sid\}}) \emph{avant} stockage ; jamais de cha\^ine
+        \code{server:/export} NFS ni d'options de montage avec credentials.
+\end{itemize}
+
+% ==================================================================
+\section{Couverture objectif par objectif (\'etat actuel)}
+% ==================================================================
+
+\begin{center}
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{6.4cm} >{\centering\arraybackslash}p{2.2cm} X}
+\toprule
+\textbf{Objectif} & \textbf{Faisable} & \textbf{Bloqu\'e par} \\
+\midrule
+1. D\'etection d'\'ecarts FS/VG & \textcolor{cBlock}{\textbf{Non}} & tailles arrondies + pas de r\'ef\'erentiel AIX/non-RHEL + \code{vg\_class}/\code{mount\_category} absents \\
+\rowcolor{rowalt}
+2. Optimisation (obsol\`ete/mal plac\'e) & \textcolor{cBlock}{\textbf{Non}} & aucun signal de placement/\^age/usage agr\'eg\'e \\
+3. Fiabilit\'e / croissance & \textcolor{cBlock}{\textbf{Non}} & snapshot unique + pas de \code{vg\_free}/inodes \\
+\rowcolor{rowalt}
+4. Efficacit\'e op. / pr\'evision & \textcolor{cBlock}{\textbf{Non}} & pas de s\'erie temporelle \\
+5. R\'eduction de risque / conformit\'e & \textcolor{cBlock}{\textbf{Non}} & pas de \code{mount\_options}/s\'eparation FS/classification syst\`eme \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% ==================================================================
+\section{Sch\'ema cible --- \og header type\fg{} de ce qu'on a besoin}
+% ==================================================================
+
+\subsection{Table \og faits\fg{} (un enregistrement par montage / objet de stockage)}
+
+En-t\^ete CSV pr\^et \`a l'emploi (\`a pr\'ef\'erer en JSON/JSONL avec hi\'erarchie imbriqu\'ee) :
+
+\begin{lstlisting}
+record_id;snapshot_id;gsma_code;host_id;hostname;hostname_normalized;host_role_env;os_family;os_distribution;os_version;os_major;architecture;record_kind;entry_type;vg_name;vg_name_normalized;vg_class;vg_size_bytes;vg_free_bytes;vg_pv_count;vg_pe_size_bytes;vg_state;lv_name;lv_size_bytes;lv_type;lv_copies;pv_name;pv_free_bytes;device;device_kind;path;path_normalized;mount_category;fstype;is_pseudo_fs;is_network_filesystem;mount_options;is_separate_filesystem;size_total_bytes;size_used_bytes;size_available_bytes;reserved_bytes;used_percent;inodes_total;inodes_used;system_partition_unexpected_usage_bytes;data_present_on_system_flag;last_modified_age_days;collection_method;scan_confidence;scan_timestamp
+\end{lstlisting}
+
+\subsection{Table \og r\'ef\'erentiel\fg{} (golden image --- fichier s\'epar\'e versionn\'e)}
+
+\begin{lstlisting}
+model_id;os_family;os_major;os_version_range;architecture_scope;expected_mount_point;expected_vg;vg_class;classification;mandatory;separate_filesystem_required;min_size_bytes;max_size_bytes;expected_fstype;expected_lv_name_pattern;expected_mount_options;severity_weight;model_version_and_source
+\end{lstlisting}
+
+\subsection{Table \og findings\fg{} (sorties d'analyse --- cl\'e \code{record\_id})}
+
+\begin{lstlisting}
+finding_id;record_id;snapshot_id;golden_image_id;deviation_type;severity;confidence_score;recommendation_text;validation_status;detected_at
+\end{lstlisting}
+
+\subsection{Exemple JSONL (un h\^ote, hi\'erarchie VG$\rightarrow$LV$\rightarrow$PV$\rightarrow$FS)}
+
+\begin{lstlisting}
+{"host_id":"a1b2-...","hostname_normalized":"srv-prod-001","os_family":"AIX","os_major":"7.2",
+ "snapshot_id":"run-2026-06-12","scan_timestamp":"2026-06-12T02:00:00Z",
+ "vgs":[{"vg_name":"rootvg","vg_class":"rootvg","vg_size_bytes":68719476736,"vg_free_bytes":10737418240,
+         "vg_pv_count":2,"vg_state":"active",
+         "lvs":[{"lv_name":"hd4","lv_size_bytes":2147483648,"lv_type":"jfs2","lv_copies":1,
+                 "fs":{"path":"/","mount_category":"system","fstype":"jfs2",
+                       "size_total_bytes":2147483648,"size_used_bytes":1288490188,
+                       "size_available_bytes":858993459,"used_percent":60.0,
+                       "is_separate_filesystem":true,
+                       "system_partition_unexpected_usage_bytes":0}}]}],
+ "pvs":[{"pv_name":"hdisk0","pv_free_bytes":5368709120}]}
+\end{lstlisting}
+
+% ==================================================================
+\section*{Note de m\'ethode}
+\addcontentsline{toc}{section}{Note de m\'ethode}
+% ==================================================================
+\small\itshape
+Diagnostic produit \`a partir de l'en-t\^ete de \code{data.csv}, de \code{objectives.txt} et de
+\code{redhat-std.txt}, via une analyse multi-agents crois\'ee (couverture des objectifs, audit des
+champs, mod\`ele LVM AIX/Linux, mod\`eles de r\'ef\'erence, pr\'evision de capacit\'e,
+conformit\'e/s\'ecurit\'e) puis consolidation et v\'erification de la n\'ecessit\'e et de la
+sensibilit\'e de chaque champ propos\'e. Les noms de champs sont des propositions \`a figer avec
+l'\'equipe data avant d\'ebut de collecte.
+
+\end{document}

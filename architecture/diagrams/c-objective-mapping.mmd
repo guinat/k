@@ -1,0 +1,30 @@
+%%{init: {'theme':'base','themeVariables':{'fontFamily':'Helvetica, Arial, sans-serif','fontSize':'13px','lineColor':'#9AA0A6','primaryTextColor':'#202124','clusterBkg':'#FAFBFC','clusterBorder':'#DADCE0'},'flowchart':{'curve':'basis','nodeSpacing':30,'rankSpacing':80,'htmlLabels':true,'padding':10}}}%%
+flowchart LR
+  subgraph OBJ["Project objectives"]
+    direction TB
+    OBJ1["O1 · Deviation detection<br/><small>FS + storage-group standards (any OS)</small>"]:::goal
+    OBJ2["O2 · Storage optimization<br/><small>useless / obsolete / misplaced</small>"]:::goal
+    OBJ3["O3 · Reliability + scalability<br/><small>prevent full filesystems</small>"]:::goal
+    OBJ4["O4 · Operational efficiency<br/><small>standardization, forecasting</small>"]:::goal
+    OBJ5["O5 · Risk reduction<br/><small>system partitions, compliance</small>"]:::goal
+  end
+
+  subgraph BR["Detection branches (rule-based)"]
+    direction TB
+    N1["O1_check_standards<br/><small>compare to golden image</small>"]:::rule
+    N2["O2_storage_optimization<br/><small>content_aggregates, mtime, data_on_system</small>"]:::rule
+    N3["O3_reliability_scalability<br/><small>used_pct, inodes, days_to_full</small>"]:::rule
+    N4["O4_operational_efficiency<br/><small>layout drift, series quality</small>"]:::rule
+    N5["O5_risk_reduction<br/><small>policies, world_writable, mount_options</small>"]:::rule
+  end
+
+  OBJ1 --> N1
+  OBJ2 --> N2
+  OBJ3 --> N3
+  OBJ4 --> N4
+  OBJ5 --> N5
+  N1 & N2 & N3 & N4 & N5 --> AGG["aggregate_dedup<br/><small>→ recommendations</small>"]:::mixed
+
+  classDef goal fill:#FCE8E6,stroke:#C5221F,color:#7A0C0A;
+  classDef rule fill:#E6F4EA,stroke:#1E8E3E,color:#0B5323;
+  classDef mixed fill:#EDE7F6,stroke:#5E35B1,color:#311B92;

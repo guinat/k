@@ -1,0 +1,31 @@
+%%{init: {'theme':'base','themeVariables':{'fontFamily':'Helvetica, Arial, sans-serif','fontSize':'13px','lineColor':'#9AA0A6','primaryTextColor':'#202124','clusterBkg':'#FAFBFC','clusterBorder':'#DADCE0'},'flowchart':{'curve':'basis','nodeSpacing':45,'rankSpacing':48,'htmlLabels':true,'padding':10}}}%%
+flowchart TD
+  A["Ansible collection<br/><small>≥500 hosts · AIX + Linux</small>"]:::io
+  B[("Raw input<br/><small>JSON / CSV, non-normalized</small>")]:::store
+  C["Ingestion + schema validation<br/><small>bytes, mandatory fields</small>"]:::rule
+  D["Normalization + enrichment<br/><small>derived fields</small>"]:::rule
+  E["History + forecasting<br/><small>growth_rate, days_to_full</small>"]:::rule
+  F[("Reference golden images<br/><small>RHEL 8/9 · AIX · others</small>")]:::store
+  G["Classification<br/><small>storage_class: system / data (any OS)</small>"]:::rule
+  H["Per-objective detection O1–O5<br/><small>parallel fan-out</small>"]:::rule
+  I["Aggregation + deduplication + scoring"]:::mixed
+  J["LLM · explanation + recommendations + confidence"]:::llm
+  K{"Low-confidence<br/>findings?"}:::decision
+  L["Human validation<br/><small>account teams (HITL)</small>"]:::human
+  M["Reports · dashboards · structured data"]:::output
+  N[("Time-series store")]:::store
+
+  A --> B --> C --> D --> E --> F --> G --> H --> I --> J --> K
+  K -->|"yes"| L --> M
+  K -->|"no"| M
+  M --> N
+  N -.->|"recalibration"| F
+
+  classDef io fill:#E8F0FE,stroke:#1967D2,color:#0B3D91;
+  classDef rule fill:#E6F4EA,stroke:#1E8E3E,color:#0B5323;
+  classDef llm fill:#F3E8FD,stroke:#8430CE,color:#4A148C;
+  classDef human fill:#FEF3E0,stroke:#E37400,color:#7A3E00;
+  classDef decision fill:#FFF8E1,stroke:#F9A825,color:#5F4300;
+  classDef store fill:#E0F7FA,stroke:#00838F,color:#00474E;
+  classDef mixed fill:#EDE7F6,stroke:#5E35B1,color:#311B92;
+  classDef output fill:#E8EAF6,stroke:#3949AB,color:#1A237E;

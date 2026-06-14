@@ -1,0 +1,173 @@
+# =============================================================================
+# reference/ubuntu-2204.yaml  —  golden image (source-derived)
+# Layer: child of base  |  Debian/Ubuntu Ubuntu 22.04 LTS (Jammy)
+# Généré depuis docs/storage-standards (recherche sourcée). Tailles en OCTETS
+# (interprétation de la chaîne source conservée dans size_source).
+# À VÉRIFIER contre les sources citées (section 'sources') avant de figer.
+# =============================================================================
+model_id: ubuntu-2204
+parent: base
+os_family: "Debian/Ubuntu"
+os_distribution: ["Ubuntu"]
+os_version: "Ubuntu 22.04 LTS (Jammy)"
+default_fstype: "ext4"
+swap_guidance: "Ubuntu 22.04 LTS recommends: For systems with hibernation, swap partition must be at least as large as RAM. For systems without hibernation: minimum round(sqrt(RAM)), maximum 2x RAM. Modern systems with abundant RAM can use less swap. Swapfile is viable alternative to swap partition."
+notes: "Ubuntu 22.04 LTS (Jammy Jellyfish) released April 2022, standard LTS with 5-year support (until 2027). No major partition layout changes from 20.04. ext4 remains default. CIS Benchmark v1.0.0 and later versions available."
+expected_filesystems:
+  - mount_point: "/"
+    classification: "system"
+    requirement: "mandatory"
+    mandatory: true
+    separate_filesystem_required: "yes"
+    expected_fstype: "ext4"
+    min_size_bytes: 8589934592
+    max_size_bytes: null
+    size_source: {min: "8 GiB", max: "unbounded"}
+    expected_mount_options: "defaults"
+    source_id: ["ubuntu-disk-space"]
+    notes: "Root filesystem. Minimum 8GB, recommended 15GB by Ubuntu official documentation."
+  - mount_point: "/boot"
+    classification: "boot"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "conditional"
+    expected_fstype: "ext4"
+    min_size_bytes: 268435456
+    max_size_bytes: 1073741824
+    size_source: {min: "256 MiB", max: "1 GiB"}
+    expected_mount_options: "defaults,nosuid,nodev"
+    source_id: ["ubuntu-partitioning"]
+    notes: "Boot loader files. Separate partition recommended on GPT/UEFI systems. Similar to Ubuntu 20.04."
+  - mount_point: "/boot/efi"
+    classification: "boot"
+    requirement: "conditional"
+    mandatory: false
+    separate_filesystem_required: "yes"
+    expected_fstype: "vfat"
+    min_size_bytes: 209715200
+    max_size_bytes: 1073741824
+    size_source: {min: "200 MiB", max: "1 GiB"}
+    expected_mount_options: "defaults"
+    source_id: ["ubuntu-partitioning"]
+    notes: "EFI System Partition (ESP) for UEFI systems. Created automatically by installer."
+  - mount_point: "/home"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "yes"
+    expected_fstype: "ext4"
+    min_size_bytes: null
+    max_size_bytes: null
+    size_source: {min: "unbounded", max: "unbounded"}
+    expected_mount_options: "defaults,nosuid,nodev"
+    source_id: ["ubuntu-partitioning", "cis-ubuntu-22"]
+    notes: "User home directories. Recommended for multi-user systems. CIS Benchmark for Ubuntu 22.04 recommends nosuid,nodev mount options."
+  - mount_point: "/usr"
+    classification: "system"
+    requirement: "optional"
+    mandatory: false
+    separate_filesystem_required: "conditional"
+    expected_fstype: "ext4"
+    min_size_bytes: 10737418240
+    max_size_bytes: null
+    size_source: {min: "10 GiB", max: "unbounded"}
+    expected_mount_options: "defaults"
+    source_id: ["ubuntu-disk-space"]
+    notes: "User programs and data. Can be mounted read-only if separate filesystem."
+  - mount_point: "/var"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "yes"
+    expected_fstype: "ext4"
+    min_size_bytes: 2147483648
+    max_size_bytes: null
+    size_source: {min: "2 GiB", max: "unbounded"}
+    expected_mount_options: "defaults,nosuid,nodev"
+    source_id: ["ubuntu-disk-space", "cis-ubuntu-22"]
+    notes: "Variable data. Ubuntu recommends 2GB minimum for separate /var. CIS Benchmark recommends nosuid,nodev."
+  - mount_point: "/var/log"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "conditional"
+    expected_fstype: "ext4"
+    min_size_bytes: 104857600
+    max_size_bytes: null
+    size_source: {min: "100 MiB", max: "unbounded"}
+    expected_mount_options: "defaults,nodev,nosuid,noexec"
+    source_id: ["cis-ubuntu-22"]
+    notes: "System log files. CIS Benchmark for Ubuntu 22.04 requires separate partition with nodev,nosuid,noexec mount options."
+  - mount_point: "/var/tmp"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "conditional"
+    expected_fstype: "ext4"
+    min_size_bytes: 104857600
+    max_size_bytes: null
+    size_source: {min: "100 MiB", max: "unbounded"}
+    expected_mount_options: "defaults,nodev,nosuid,noexec"
+    source_id: ["cis-ubuntu-22"]
+    notes: "Temporary files preserved between reboots. CIS Benchmark requires separate partition with nodev,nosuid,noexec mount options."
+  - mount_point: "/tmp"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "yes"
+    expected_fstype: "ext4"
+    min_size_bytes: 524288000
+    max_size_bytes: 2147483648
+    size_source: {min: "500 MiB", max: "2 GiB"}
+    expected_mount_options: "defaults,nodev,nosuid,noexec"
+    source_id: ["cis-ubuntu-22"]
+    notes: "Temporary files. CIS Benchmark requires separate partition with nodev,nosuid,noexec mount options."
+  - mount_point: "/dev/shm"
+    classification: "data"
+    requirement: "optional"
+    mandatory: false
+    separate_filesystem_required: "no"
+    expected_fstype: "tmpfs"
+    min_size_bytes: null
+    max_size_bytes: null
+    size_source: {min: "N/A", max: "N/A"}
+    expected_mount_options: "defaults,nodev,nosuid,noexec"
+    source_id: ["cis-ubuntu-22"]
+    notes: "Shared memory filesystem (tmpfs). CIS Benchmark recommends mounting with nodev,nosuid,noexec options."
+  - mount_point: "swap"
+    classification: "swap"
+    requirement: "mandatory"
+    mandatory: true
+    separate_filesystem_required: "yes"
+    expected_fstype: "swap"
+    min_size_bytes: 1073741824
+    max_size_bytes: null
+    size_source: {min: "1 GiB", max: "2x RAM"}
+    expected_mount_options: "defaults"
+    source_id: ["ubuntu-swap-faq"]
+    notes: "Swap space. Ubuntu official guidance: For modern systems (>1GB RAM) without hibernation: min=round(sqrt(RAM)), max=2xRAM. With hibernation: min=RAM size. Can also use swapfile."
+sources:
+  ubuntu-disk-space:
+    title: "Ubuntu Community Help: DiskSpace"
+    publisher: "Ubuntu Community"
+    url: "https://help.ubuntu.com/community/DiskSpace"
+    version_or_date: "Current"
+    retrieved: true
+  ubuntu-partitioning:
+    title: "Ubuntu Community Help: PartitioningSchemes"
+    publisher: "Ubuntu Community"
+    url: "https://help.ubuntu.com/community/PartitioningSchemes"
+    version_or_date: "Current"
+    retrieved: true
+  cis-ubuntu-22:
+    title: "CIS Ubuntu Linux 22.04 LTS Benchmark v1.0.0"
+    publisher: "Center for Internet Security (CIS)"
+    url: "https://www.cisecurity.org/benchmark/ubuntu_linux"
+    version_or_date: "v1.0.0 (2022-08-30)"
+    retrieved: false
+  ubuntu-swap-faq:
+    title: "Ubuntu Community Help: SwapFaq"
+    publisher: "Ubuntu Community"
+    url: "https://help.ubuntu.com/community/SwapFaq"
+    version_or_date: "Current"
+    retrieved: true

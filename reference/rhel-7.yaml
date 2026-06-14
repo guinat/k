@@ -1,0 +1,161 @@
+# =============================================================================
+# reference/rhel-7.yaml  —  golden image (source-derived)
+# Layer: child of base  |  RHEL family RHEL 7
+# Généré depuis docs/storage-standards (recherche sourcée). Tailles en OCTETS
+# (interprétation de la chaîne source conservée dans size_source).
+# À VÉRIFIER contre les sources citées (section 'sources') avant de figer.
+# =============================================================================
+model_id: rhel-7
+parent: base
+os_family: "RHEL family"
+os_distribution: ["RHEL", "OracleLinux", "Rocky", "AlmaLinux"]
+os_version: "RHEL 7"
+default_fstype: "XFS"
+swap_guidance: "Automatic partitioning limits swap partition to maximum 10% of total disk or 128 GB, whichever is smaller. Modern systems with hundreds of GB of RAM should consider swap as a function of system memory workload, not system memory. Minimum 256 MB for systems with 1 GB or less RAM. For hibernation, swap space must be at least equal to RAM size."
+notes: "RHEL 7.3 increased /boot default from 500 MB to 1 GB. /boot must always be on a physical partition, not LVM. Default filesystem for / and /boot is ext4 (XFS cannot be used for /boot). Default partitioning scheme uses LVM."
+expected_filesystems:
+  - mount_point: "/"
+    classification: "system"
+    requirement: "mandatory"
+    mandatory: true
+    separate_filesystem_required: "no"
+    expected_fstype: "XFS"
+    min_size_bytes: 3221225472
+    max_size_bytes: null
+    size_source: {min: "3.0 GiB", max: "unbounded"}
+    expected_mount_options: "defaults,relatime"
+    source_id: ["rhel7-install-guide"]
+    notes: "Root filesystem. 3.0 GiB allows minimal installation; 5.0 GiB allows full installation with packages."
+  - mount_point: "/boot"
+    classification: "boot"
+    requirement: "mandatory"
+    mandatory: true
+    separate_filesystem_required: "yes"
+    expected_fstype: "ext4"
+    min_size_bytes: 262144000
+    max_size_bytes: null
+    size_source: {min: "250 MiB", max: "unbounded"}
+    expected_mount_options: "defaults,relatime"
+    source_id: ["rhel7-install-guide"]
+    notes: "Must be on physical partition, not LVM. Default size is 1 GB (increased from 500 MB in RHEL 7.3). Each kernel requires approximately 30-60 MiB."
+  - mount_point: "/boot/efi"
+    classification: "boot"
+    requirement: "conditional"
+    mandatory: false
+    separate_filesystem_required: "yes"
+    expected_fstype: "vfat"
+    min_size_bytes: 52428800
+    max_size_bytes: null
+    size_source: {min: "50 MiB", max: "unbounded"}
+    expected_mount_options: "defaults,umask=0077,shortname=winnt"
+    source_id: ["rhel7-install-guide"]
+    notes: "Required for UEFI systems on AMD64, Intel 64, and 64-bit ARM. Recommended minimum size is 200 MiB. Must not be encrypted."
+  - mount_point: "/home"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "yes"
+    expected_fstype: "XFS"
+    min_size_bytes: 1073741824
+    max_size_bytes: null
+    size_source: {min: "1 GiB", max: "unbounded"}
+    expected_mount_options: "defaults,nodev,nosuid,relatime"
+    source_id: ["rhel7-security-guide", "cis-rhel7"]
+    notes: "Separate /home partition protects user data during system upgrades. Prevents / partition from filling and destabilizing system."
+  - mount_point: "/var"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "yes"
+    expected_fstype: "XFS"
+    min_size_bytes: 3221225472
+    max_size_bytes: null
+    size_source: {min: "3.0 GiB", max: "unbounded"}
+    expected_mount_options: "defaults,nodev,nosuid,relatime"
+    source_id: ["rhel7-install-guide", "rhel7-security-guide"]
+    notes: "Holds logs, spool, temporary files, and application data. Must be large enough for package updates. Prevents / from filling due to log growth."
+  - mount_point: "/var/log"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "conditional"
+    expected_fstype: "XFS"
+    min_size_bytes: 2147483648
+    max_size_bytes: null
+    size_source: {min: "2.0 GiB", max: "unbounded"}
+    expected_mount_options: "defaults,nodev,noexec,nosuid,relatime"
+    source_id: ["cis-rhel7", "rhel7-security-guide"]
+    notes: "Separate partition prevents log growth from affecting system stability. CIS Benchmark recommends nodev, noexec, nosuid mount options."
+  - mount_point: "/var/log/audit"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "conditional"
+    expected_fstype: "XFS"
+    min_size_bytes: 1073741824
+    max_size_bytes: null
+    size_source: {min: "1.0 GiB", max: "unbounded"}
+    expected_mount_options: "defaults,nodev,noexec,nosuid,relatime"
+    source_id: ["cis-rhel7", "rhel7-security-guide"]
+    notes: "Should reside on separate mount point to prevent other processes from consuming audit log space and provide accurate remaining space detection. CIS Benchmark recommends nodev, noexec, nosuid mount options."
+  - mount_point: "/tmp"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "yes"
+    expected_fstype: "XFS"
+    min_size_bytes: 1073741824
+    max_size_bytes: null
+    size_source: {min: "1.0 GiB", max: "unbounded"}
+    expected_mount_options: "defaults,nodev,noexec,nosuid,relatime"
+    source_id: ["rhel7-security-guide", "cis-rhel7"]
+    notes: "Separate partition prevents temp files from filling root filesystem. CIS Benchmark requires nodev, nosuid, noexec mount options to restrict execution of binaries and setuid files."
+  - mount_point: "/var/tmp"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "yes"
+    expected_fstype: "XFS"
+    min_size_bytes: 1073741824
+    max_size_bytes: null
+    size_source: {min: "1.0 GiB", max: "unbounded"}
+    expected_mount_options: "defaults,nodev,noexec,nosuid,relatime"
+    source_id: ["rhel7-security-guide", "cis-rhel7"]
+    notes: "Separate partition prevents temp file growth from affecting system stability. CIS Benchmark recommends nodev, noexec, nosuid mount options."
+  - mount_point: "swap"
+    classification: "swap"
+    requirement: "mandatory"
+    mandatory: true
+    separate_filesystem_required: "yes"
+    expected_fstype: "swap"
+    min_size_bytes: 268435456
+    max_size_bytes: 137438953472
+    size_source: {min: "256 MiB", max: "128 GiB"}
+    expected_mount_options: null
+    source_id: ["rhel7-install-guide", "rhel7-storage-admin"]
+    notes: "Automatic partitioning limits swap to 10% of total disk size or 128 GB maximum. Can be a dedicated swap partition, swap file, or LVM logical volume. For hibernation, size must be at least equal to installed RAM."
+sources:
+  rhel7-install-guide:
+    title: "Installation Destination | Installation Guide | Red Hat Enterprise Linux 7"
+    publisher: "Red Hat"
+    url: "https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/7/html/installation_guide/sect-disk-partitioning-setup-x86"
+    version_or_date: "RHEL 7 (2013-2024)"
+    retrieved: true
+  rhel7-security-guide:
+    title: "Partitioning the Disk | Security Guide | Red Hat Enterprise Linux 7"
+    publisher: "Red Hat"
+    url: "https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/7/html/security_guide/sec-partitioning_the_disk"
+    version_or_date: "RHEL 7 (2013-2024)"
+    retrieved: false
+  cis-rhel7:
+    title: "CIS Red Hat Enterprise Linux 7 Benchmark"
+    publisher: "Center for Internet Security (CIS)"
+    url: "https://www.cisecurity.org/benchmark/red_hat_linux"
+    version_or_date: "v4.0.0 (2023-12-21)"
+    retrieved: false
+  rhel7-storage-admin:
+    title: "Swap Space | Storage Administration Guide | Red Hat Enterprise Linux 7"
+    publisher: "Red Hat"
+    url: "https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/7/html/storage_administration_guide/ch-swapspace"
+    version_or_date: "RHEL 7 (2013-2024)"
+    retrieved: false

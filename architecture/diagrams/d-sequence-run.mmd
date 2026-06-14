@@ -1,0 +1,40 @@
+%%{init: {'theme':'base','themeVariables':{'fontFamily':'Helvetica, Arial, sans-serif','fontSize':'13px','actorBkg':'#E8F0FE','actorBorder':'#1967D2','actorTextColor':'#0B3D91','actorLineColor':'#9AA0A6','signalColor':'#5F6368','signalTextColor':'#202124','labelBoxBkgColor':'#FFF8E1','labelBoxBorderColor':'#F9A825','labelTextColor':'#5F4300','loopTextColor':'#5F4300','noteBkgColor':'#E6F4EA','noteBorderColor':'#1E8E3E','noteTextColor':'#0B5323'},'sequence':{'mirrorActors':false,'messageAlign':'center','boxMargin':8}}}%%
+sequenceDiagram
+  autonumber
+  participant ANS as Ansible collection
+  participant GR as LangGraph graph
+  participant RULE as Rule nodes
+  participant STORE as Time-series store
+  participant REF as Golden images
+  participant LLM as LLM
+  participant CKPT as Checkpointer
+  participant HUM as Account team
+
+  ANS->>GR: raw snapshot (JSON/CSV, snapshot_id)
+  GR->>RULE: parse + validate schema (bytes, mandatory)
+  RULE->>RULE: normalize + enrich (derived fields)
+  RULE->>STORE: read history (previous snapshots)
+  STORE-->>RULE: time series
+  RULE->>RULE: forecast (growth_rate, days_to_full)
+  GR->>REF: retrieve model by (os, distro, env)
+  REF-->>GR: golden image (AIX / RHEL / other)
+  Note over GR,RULE: fan-out Send — O1..O5 in parallel
+  GR->>RULE: per-objective detection
+  RULE-->>GR: findings_by_objective (additive reducer)
+  GR->>LLM: aggregate, deduplicate, correlate root cause
+  LLM-->>GR: aggregated_findings
+  GR->>RULE: severity + initial confidence_score
+  GR->>LLM: explain + recommend + adjust confidence
+  LLM-->>GR: recommendations
+  alt confidence < threshold or high impact
+    GR->>CKPT: interrupt() — persist state (thread_id)
+    GR->>HUM: validation queue
+    HUM-->>GR: Command(resume=decision)
+    GR->>RULE: apply_decisions
+  else sufficient confidence
+    GR->>GR: no interruption
+  end
+  GR->>RULE: generate reports + structured data
+  GR->>STORE: persist run + dashboards
+  GR-->>REF: feedback (decisions → recalibration)
+  GR-->>ANS: prioritized deviation reports

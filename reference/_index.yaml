@@ -1,0 +1,21 @@
+# reference/_index — modèles de référence générés depuis docs/storage-standards
+# (couches : base = FHS/CIS ; chaque OS/version hérite de base, sauf Windows)
+models:
+  - {model: aix-71, os_family: "AIX", version: "7.1", parent: base, rows: 13}
+  - {model: aix-72, os_family: "AIX", version: "7.2", parent: base, rows: 13}
+  - {model: aix-73, os_family: "AIX", version: "7.3", parent: base, rows: 13}
+  - {model: base, os_family: "FHS / CIS baseline", version: "FHS 3.0 + CIS baseline (Linux Foundation / CIS)", parent: null, rows: 16}
+  - {model: debian-11, os_family: "Debian/Ubuntu", version: "Debian 11 (Bullseye)", parent: base, rows: 11}
+  - {model: debian-12, os_family: "Debian/Ubuntu", version: "Debian 12 (Bookworm)", parent: base, rows: 11}
+  - {model: rhel-7, os_family: "RHEL family", version: "RHEL 7", parent: base, rows: 10}
+  - {model: rhel-8, os_family: "RHEL family", version: "RHEL 8", parent: base, rows: 10}
+  - {model: rhel-9, os_family: "RHEL family", version: "RHEL 9", parent: base, rows: 10}
+  - {model: sles-12, os_family: "SUSE/SLES", version: "SLES 12 SP5", parent: base, rows: 9}
+  - {model: sles-15, os_family: "SUSE/SLES", version: "SLES 15 (SP1-SP7)", parent: base, rows: 9}
+  - {model: ubuntu-2004, os_family: "Debian/Ubuntu", version: "Ubuntu 20.04 LTS (Focal)", parent: base, rows: 11}
+  - {model: ubuntu-2204, os_family: "Debian/Ubuntu", version: "Ubuntu 22.04 LTS (Jammy)", parent: base, rows: 11}
+  - {model: ubuntu-2404, os_family: "Debian/Ubuntu", version: "Ubuntu 24.04 LTS (Noble)", parent: base, rows: 11}
+  - {model: windows-server-2016, os_family: "Windows Server", version: "2016", parent: null, rows: 5}
+  - {model: windows-server-2019, os_family: "Windows Server", version: "2019", parent: null, rows: 5}
+  - {model: windows-server-2022, os_family: "Windows Server", version: "2022", parent: null, rows: 5}
+  - {model: windows-server-2025, os_family: "Windows Server", version: "2025", parent: null, rows: 5}

@@ -1,0 +1,253 @@
+========================================================================
+ MESSAGE — ÉQUIPE DATA / COLLECTE  (version française)
+========================================================================
+
+Objet : Collecte de métadonnées stockage (multi-OS) — quoi récupérer et
+        sous quel format
+
+Bonjour,
+
+Nous démarrons un système d'analyse (IA/agents) pour la gestion de
+capacité et la détection d'écarts de configuration du stockage sur tout
+le parc (≥ 500 serveurs), tous OS au même niveau : AIX, distributions
+Linux (RHEL / Oracle / Rocky / Alma, Debian / Ubuntu, SUSE / SLES) ET
+Windows. J'ai besoin que vous me remontiez des MÉTADONNÉES BRUTES par
+serveur.
+
+IMPORTANT — séparation des rôles :
+- COMMENT vous récupérez ces champs (commandes, outils, agents, WinRM,
+  parsing…) c'est VOTRE choix, je ne m'en mêle pas.
+- Ce qui compte pour moi : que vous me livriez exactement les CHAMPS
+  ci-dessous, en respectant le FORMAT JSON joint (annexes A et B).
+  Pas de champs calculés/dérivés : uniquement du brut observé sur l'hôte.
+
+CE QUE J'ATTENDS EN SORTIE (règles de format, pas de méthode)
+1. Un document JSON par serveur et par passage, conforme à l'annexe A.
+2. Toutes les tailles en OCTETS exacts — jamais arrondi, ni Go, ni blocs,
+   ni pourcentage. (Un /boot de 500 Mo doit valoir 524288000, pas 0 ni 1.)
+3. Pour chaque filesystem : total, utilisé ET disponible (les trois),
+   + les inodes là où ça existe (Unix).
+4. Horodatage en UTC (ISO-8601) + un snapshot_id par passage, et collecte
+   RÉPÉTÉE dans le temps (on ajoute, on n'écrase pas) — c'est ce qui rend
+   la prévision possible.
+5. Préserver le lien filesystem ↔ topologie via les clés backing_ref /
+   group_ref (c'est ce qui permet de dire « système » vs « données »).
+6. Métadonnées NON SENSIBLES uniquement : pas de nom de fichier, pas de
+   propriétaire, pas de contenu (sur Windows : un RÉSUMÉ d'ACL, pas les
+   ACL nominatives).
+7. Un champ NON APPLICABLE à un OS doit être renvoyé à `null` (vérifié
+   N/A), jamais omis — pour distinguer « N/A » de « pas collecté ».
+
+DÉMARCHE PROPOSÉE
+1. D'abord un ÉCHANTILLON représentatif (~10 serveurs : un AIX, un RHEL,
+   un Ubuntu, un SUSE, un Linux en partitions simples, un Windows) au
+   format ci-dessous, pour valider ensemble.
+2. Puis généralisation au parc (≥ 500) avec collecte planifiée et répétée.
+
+Le détail complet (types, nullabilité par OS) est dans les documents
+joints « data-collection-spec.pdf » et « field-applicability-matrix.pdf ».
+Le format exact et la liste des champs sont en ANNEXES A et B ci-dessous.
+
+Merci ! Dispo pour caler le format sur l'échantillon.
+
+
+========================================================================
+ MESSAGE — DATA / COLLECTION TEAM  (English version)
+========================================================================
+
+Subject: Storage metadata collection (multi-OS) — what to collect and in
+         which format
+
+Hi,
+
+We are starting an AI/agent-based system for storage capacity management
+and configuration-deviation detection across the whole fleet (≥ 500
+servers), all OSes at the same level: AIX, Linux distros (RHEL / Oracle /
+Rocky / Alma, Debian / Ubuntu, SUSE / SLES) AND Windows. I need RAW
+METADATA per server.
+
+ROLE SPLIT — important:
+- HOW you collect these fields (commands, tools, agents, WinRM, parsing…)
+  is YOUR call; I won't interfere.
+- What matters to me: deliver exactly the FIELDS below, in the attached
+  JSON FORMAT (appendices A and B). Raw only — no computed/derived fields.
+
+WHAT I EXPECT AS OUTPUT (format rules, not method)
+1. One JSON document per server per run, matching appendix A.
+2. All sizes in EXACT BYTES — never rounded, no GB, no blocks, no percent.
+3. Per filesystem: total, used AND available (all three), + inodes where
+   they exist (Unix).
+4. UTC (ISO-8601) timestamp + a snapshot_id per run, and REPEATED
+   collection over time (append, never overwrite) — this enables forecasting.
+5. Preserve the filesystem ↔ topology link via backing_ref / group_ref
+   keys (this is what tells "system" vs "data").
+6. NON-SENSITIVE metadata only: no filenames, no owners, no content (on
+   Windows: an ACL SUMMARY, not the named ACLs).
+7. A field NOT APPLICABLE to an OS must be returned as `null` (verified
+   N/A), never omitted.
+
+APPROACH
+1. First a representative SAMPLE (~10 servers: one AIX, one RHEL, one
+   Ubuntu, one SUSE, one plain-partition Linux, one Windows) in the format
+   below, to validate together.
+2. Then roll out to the fleet (≥ 500) with scheduled, repeated collection.
+
+Full detail (types, per-OS nullability) is in the attached
+"data-collection-spec.pdf" and "field-applicability-matrix.pdf". The exact
+format and field list are in APPENDICES A and B below.
+
+Thanks! Happy to lock the format on the sample.
+
+
+========================================================================
+ ANNEXE A — FORMAT JSON ATTENDU (un document par serveur et par passage)
+ APPENDIX A — EXPECTED JSON FORMAT (one document per server per run)
+========================================================================
+Légende : OBL = obligatoire · REC = recommandé · COND = conditionnel
+(nullable selon l'OS/FS) · OBL* = obligatoire dès qu'un groupe/volume existe.
+
+{
+  // ── Identité & métadonnées de collecte (UNIVERSEL, tous OS) ──────────────
+  "host_id":          "string",   // OBL — identifiant stable de l'hôte
+  "hostname":         "string",   // OBL
+  "gsma_code":        "string",   // OBL — code site/parc
+  "host_role_env":    "string",   // OBL — prod | preprod | test | dev ...
+  "platform":         "string",   // OBL — enum: aix | linux | windows
+  "os_family":        "string",   // OBL — AIX | RedHat | Debian | Suse | OracleLinux | Windows
+  "os_distribution":  "string",   // OBL — AIX | RHEL | Ubuntu | Debian | SLES | OracleLinux | WindowsServer
+  "os_version":       "string",   // OBL
+  "architecture":     "string",   // OBL — ppc64 | x86_64 | ...
+  "snapshot_id":      "string",   // OBL — identifiant du snapshot
+  "scan_timestamp":   "string",   // OBL — UTC ISO-8601
+  "collection_method":"string",   // OBL — votre méthode (ex: ssh-shell | winrm-powershell | agent)
+  "scan_confidence":  "number",   // OBL — 0..1 fiabilité de la collecte
+
+  // ── DÉNOMINATEUR UNIVERSEL : tout filesystem montable / volume Windows ───
+  "filesystems": [{
+    "mount_point":        "string",          // OBL — "/", "/var" | "C:", "D:" | mount-folder
+    "label":              "string|null",     // REC
+    "fstype":             "string",          // OBL — xfs|ext4|btrfs|jfs2|ntfs|refs|vfat...
+    "size_total_bytes":   "number",          // OBL — octets
+    "size_used_bytes":    "number",          // OBL — octets
+    "size_available_bytes":"number",         // OBL — octets
+    "reserved_bytes":     "number|null",     // COND — ext uniquement ; null sur xfs/jfs2/ntfs/btrfs
+    "inodes_total":       "number|null",     // COND — null sur Windows NTFS/ReFS
+    "inodes_used":        "number|null",     // COND — null sur Windows NTFS/ReFS
+    "access_model":       "string",          // OBL — "posix-mount-options" | "ntfs-acl"
+    "mount_options":      "string|null",     // COND — flags Unix ; null sur Windows
+    "acl_summary":        "object|null",     // COND — résumé ACL non sensible Windows ; null sur Unix
+    "backing_kind":       "string",          // OBL — lvm-lv | partition | virtual-disk | storage-space | network | pseudo
+    "backing_ref":        "string|null",     // OBL* — clé vers volume/disque sous-jacent
+    "group_ref":          "string|null",     // OBL* — clé vers le groupe (VG/pool)
+    "content_aggregates": { /* object */ }   // REC — agrégats non sensibles (2e passage)
+  }],
+
+  // ── TOPOLOGIE STOCKAGE PLATEFORME — niveaux neutres + discriminateur *_kind
+  "storage_topology": {
+    "groups": [{
+      "group_name":       "string",          // OBL (si groupe présent)
+      "group_kind":       "string",          // OBL — lvm-vg | storage-pool
+      "size_total_bytes": "number",          // OBL — octets
+      "size_free_bytes":  "number",          // OBL — octets
+      "member_disk_count":"number",          // OBL
+      "state":            "string",          // OBL — active | online | degraded ...
+      "extent_size_bytes":"number|null",     // COND — PE size (LVM) / extent ; null si N/A
+      "capabilities": {                      // COND — nullable selon OS
+        "max_lvs":        "number|null",     //   AIX
+        "max_pps":        "number|null",     //   AIX
+        "vg_type":        "string|null",     //   AIX (big | scalable ...)
+        "resiliency":     "string|null"      //   Windows (Mirror | Parity | Simple)
+      }
+    }],
+    "volumes": [{
+      "volume_name":      "string",          // OBL (si volume présent)
+      "volume_kind":      "string",          // OBL — lvm-lv | partition | virtual-disk
+      "group_ref":        "string|null",     // OBL — clé vers groupe parent
+      "size_bytes":       "number",          // OBL — octets
+      "type":             "string|null",     // REC — jfs2 | linear | striped | mirror | gpt-part ...
+      "redundancy":       "string|null"      // COND — none | mirror | parity ...
+    }],
+    "disks": [{
+      "disk_name":        "string",          // OBL (si disque exposé)
+      "size_bytes":       "number",          // OBL — octets
+      "free_bytes":       "number|null",     // REC — octets
+      "group_ref":        "string|null",     // REC — clé vers groupe
+      "media_type":       "string|null"      // REC — hdd | ssd | unspecified
+    }]
+  },
+
+  // ── PAGING / SWAP / PAGEFILE ────────────────────────────────────────────
+  "paging": [{
+    "name":             "string",            // OBL
+    "kind":             "string",            // OBL — aix-paging-lv | linux-swap-partition | linux-swap-file | windows-pagefile
+    "size_total_bytes": "number",            // OBL — octets
+    "size_used_bytes":  "number|null"        // REC — octets
+  }]
+}
+
+
+========================================================================
+ ANNEXE B — CHAMPS À COLLECTER : quoi, pourquoi, et objectif servi
+ APPENDIX B — FIELDS TO COLLECT: what, why, and which objective
+========================================================================
+Objectifs : O1 détection d'écarts aux standards · O2 optimisation
+(données inutiles/obsolètes/mal placées) · O3 fiabilité & prévention des
+saturations · O4 efficacité opérationnelle & prévision · O5 réduction du
+risque & conformité.
+
+— NIVEAU HÔTE (identité & métadonnées de collecte) —
+  host_id            clé stable pour dédoublonner et corréler les snapshots dans le temps   [O3,O4]
+  hostname           identification dans les rapports et dashboards                          [O4]
+  gsma_code          rattachement compte/parc → choix du référentiel & normalisation         [O1,O5]
+  host_role_env      prod/test → pondère la sévérité d'un incident                           [O3,O5]
+  platform           AIX/Linux/Windows → aiguille la logique et le bon standard               [O1]
+  os_family/_distribution/_version
+                     sélectionne le bon golden image (RHEL8≠RHEL9≠AIX≠Windows…)               [O1]
+  architecture       règles conditionnelles (UEFI /boot/efi, ppc64…)                          [O1]
+  snapshot_id        identifie chaque passage = clé de la série temporelle                    [O3,O4]
+  scan_timestamp     base temporelle UTC → prévision de croissance                            [O3,O4]
+  collection_method  traçabilité / qualité de la donnée                                       [O1,O4]
+  scan_confidence    complétude de la collecte → fiabilité des résultats                      [O1]
+
+— NIVEAU filesystems[] (chaque FS Unix / volume Windows) —
+  mount_point        sémantique du chemin (/var, C:…) → classification & comparaison standard [O1,O2,O5]
+  label              corrélation / lisibilité                                                 [O1]
+  fstype             type FS → règles applicables, exclusion pseudo/réseau                    [O1]
+  size_total_bytes   capacité → base d'occupation et de prévision                             [O3]
+  size_used_bytes    occupation → saturation imminente + base d'optimisation                  [O2,O3]
+  size_available_bytes  marge restante réelle                                                 [O3]
+  reserved_bytes     réserve système (ext) qui fausse l'occupation perçue                     [O3]
+  inodes_total/_used saturation par inodes même sans saturation en octets                     [O3]
+  access_model       distingue conformité Unix (options) vs Windows (ACL)                     [O5]
+  mount_options      conformité (ro/nodev/nosuid/noexec…)                                      [O1,O5]
+  acl_summary        posture de conformité Windows (résumé non nominatif)                     [O5]
+  backing_kind/backing_ref  relie le FS à son volume/LV/partition sous-jacent                 [O1,O2]
+  group_ref          relie le FS à son groupe (VG/pool) → dérive système vs données           [O1,O2,O5]
+  content_aggregates signaux « mal placé / obsolète » (agrégats non sensibles)                [O2,O5]
+
+— NIVEAU storage_topology.groups[] (VG / Storage Pool) —
+  group_name         identifie le groupe (rootvg/datavg, pool)                                [O1,O2,O5]
+  group_kind         type de groupe (lvm-vg / storage-pool)                                   [O1]
+  size_total_bytes/size_free_bytes  capacité & marge de croissance du groupe                  [O3]
+  member_disk_count  résilience (groupe mono-disque = point de défaillance)                   [O1,O3]
+  state              santé du groupe (inactif/dégradé)                                         [O3]
+  extent_size_bytes  granularité d'allocation (cohérence)                                      [O1]
+  capabilities       plafonds & résilience (AIX max_lvs/pps ; Windows resiliency)             [O1,O3]
+
+— NIVEAU storage_topology.volumes[] (LV / virtual disk / partition) —
+  volume_name        cible d'extension, lien FS ↔ groupe                                       [O1,O3]
+  volume_kind        type (lvm-lv / partition / virtual-disk)                                  [O1]
+  group_ref          rattachement au groupe parent                                            [O1]
+  size_bytes         taille allouée (écart éventuel vs le FS)                                  [O1,O3]
+  type               jfs2 / paging / boot / striped …                                          [O1,O5]
+  redundancy         miroir / parité → fiabilité                                               [O1,O3]
+
+— NIVEAU storage_topology.disks[] (PV / disque physique) —
+  disk_name          corrélation disque ↔ groupe                                               [O1,O3]
+  size_bytes/free_bytes  capacité physique & marge d'extension                                [O3]
+  group_ref          rattachement au groupe                                                   [O1]
+  media_type         hdd/ssd (contexte de performance)                                        [O4]
+
+— NIVEAU paging[] (swap / pagefile) —
+  name/kind          espace de pagination / swap / pagefile                                   [O1,O3]
+  size_total_bytes/size_used_bytes  dimension & pression mémoire                              [O3]

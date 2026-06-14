@@ -1,0 +1,67 @@
+Objectif
+
+Le projet vise à développer une solution basée sur l’IA pour la gestion de capacité et la détection de déviations dans les configurations des systèmes de fichiers à travers les serveurs, en se concentrant spécifiquement sur les Root Volume Groups (RootVG) et les Data Volume Groups (DataVG). Les objectifs sont :
+
+Détection automatisée des écarts par rapport aux standards dans les configurations des systèmes de fichiers et des groupes de volumes.
+
+Optimisation de l’utilisation du stockage en identifiant les données inutiles, obsolètes ou mal placées.
+
+Amélioration de la fiabilité et de l’évolutivité en prévenant les défaillances système et en permettant une croissance fluide des données utilisateurs/applications.
+
+Efficacité opérationnelle grâce à des structures standardisées, une résolution des incidents facilitée et une meilleure prévision des besoins en stockage.
+
+Réduction des risques en garantissant que seules les données appropriées résident sur les partitions système et en appliquant les politiques de conformité.
+
+Périmètre
+
+Périmètre technique
+
+Collecte de données : Utilisation de Playbooks Ansible et d’agents IA pour collecter les métadonnées de tous les disques et systèmes de fichiers sur divers systèmes d’exploitation. Seules des métadonnées non sensibles sont collectées (noms de systèmes de fichiers, affectations de volumes).
+
+Analyse : L’IA analyse les données collectées pour détecter les écarts par rapport aux modèles ou standards de référence (ex. : données appartenant au client présentes sur des partitions système, fichiers obsolètes à supprimer, volumes mal configurés).
+
+Taille de l’échantillon : Viser des échantillons statistiquement significatifs (au moins 500 serveurs) pour garantir un entraînement IA robuste et une détection pertinente des déviations.
+
+Formats de données : Préférence pour JSON en raison de sa flexibilité, mais CSV est également envisagé.
+
+Environnement de traitement : L’analyse peut être exécutée localement, en laboratoire ou dans le cloud (GCP/Azure), selon les besoins d’évolutivité et d’intégration.
+
+Étapes du processus
+
+Collecter les données des systèmes de fichiers et du stockage des hôtes.
+
+Normaliser et standardiser les conventions de nommage propres aux comptes.
+
+Classifier les systèmes et les données.
+
+Comparer le placement réel des systèmes de fichiers aux modèles de référence.
+
+Détecter les déviations et anomalies.
+
+Prioriser les résultats et générer des recommandations actionnables.
+
+Valider les résultats à faible confiance avec les équipes de compte.
+
+Livrables
+
+Rapports de déviations avec classification de sévérité.
+
+Recommandations actionnables pour la remédiation.
+
+Tableaux de bord d’insights et de métriques agrégées.
+
+Données structurées pour le reporting et les analyses ultérieures.
+
+Clients & Parties prenantes
+
+Direction de compte, architectes plateforme, responsables techniques et équipes de gestion de capacité.
+
+Risques & Limitations
+
+Conventions de nommage incohérentes entre les comptes.
+
+Potentiel de faux positifs.
+
+Nécessité de modèles de référence (« golden images ») pour la comparaison.
+
+Les préoccupations de confidentialité sont minimisées grâce à la collecte exclusive de métadonnées.

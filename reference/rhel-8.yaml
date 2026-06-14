@@ -1,0 +1,161 @@
+# =============================================================================
+# reference/rhel-8.yaml  —  golden image (source-derived)
+# Layer: child of base  |  RHEL family RHEL 8
+# Généré depuis docs/storage-standards (recherche sourcée). Tailles en OCTETS
+# (interprétation de la chaîne source conservée dans size_source).
+# À VÉRIFIER contre les sources citées (section 'sources') avant de figer.
+# =============================================================================
+model_id: rhel-8
+parent: base
+os_family: "RHEL family"
+os_distribution: ["RHEL", "OracleLinux", "Rocky", "AlmaLinux"]
+os_version: "RHEL 8"
+default_fstype: "XFS"
+swap_guidance: "Modern systems with hundreds of GB of RAM should consider swap as a function of system memory workload, not system memory size alone. Minimum 256 MB for systems with 1 GB or less RAM. Swap can be partition, file, or extended LVM logical volume. For hibernation, must be at least equal to RAM size."
+notes: "Default filesystem is XFS for / and data partitions. /boot must be ext4 (not XFS). Default partitioning uses LVM. Separate /boot, /home, /tmp, and /var/tmp partitions are recommended for bare-metal installations; optional for virtual machines. Automatic partitioning requires 55 GiB minimum to create /home."
+expected_filesystems:
+  - mount_point: "/"
+    classification: "system"
+    requirement: "mandatory"
+    mandatory: true
+    separate_filesystem_required: "no"
+    expected_fstype: "XFS"
+    min_size_bytes: 5368709120
+    max_size_bytes: null
+    size_source: {min: "5.0 GiB", max: "unbounded"}
+    expected_mount_options: "defaults,relatime"
+    source_id: ["rhel8-install-guide"]
+    notes: "Root filesystem. Minimum 5 GiB to accommodate typical installation."
+  - mount_point: "/boot"
+    classification: "boot"
+    requirement: "mandatory"
+    mandatory: true
+    separate_filesystem_required: "yes"
+    expected_fstype: "ext4"
+    min_size_bytes: 1073741824
+    max_size_bytes: null
+    size_source: {min: "1.0 GiB", max: "unbounded"}
+    expected_mount_options: "defaults,relatime"
+    source_id: ["rhel8-install-guide", "rhel8-security-hardening"]
+    notes: "Must be on physical partition, not LVM. Default size is 1 GB. Recommended 2 GB to avoid running out of space during kernel updates."
+  - mount_point: "/boot/efi"
+    classification: "boot"
+    requirement: "conditional"
+    mandatory: false
+    separate_filesystem_required: "yes"
+    expected_fstype: "vfat"
+    min_size_bytes: 209715200
+    max_size_bytes: null
+    size_source: {min: "200 MiB", max: "unbounded"}
+    expected_mount_options: "defaults,umask=0077,shortname=winnt"
+    source_id: ["rhel8-install-guide"]
+    notes: "Required for UEFI systems on AMD64, Intel 64, and 64-bit ARM. Recommended size 200 MiB. Must not be encrypted."
+  - mount_point: "/home"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "yes"
+    expected_fstype: "XFS"
+    min_size_bytes: 1073741824
+    max_size_bytes: null
+    size_source: {min: "1.0 GiB", max: "unbounded"}
+    expected_mount_options: "defaults,nodev,nosuid,relatime"
+    source_id: ["rhel8-security-hardening", "cis-rhel8"]
+    notes: "Separate partition protects user data during upgrades and prevents / from filling. Optional for virtual machines."
+  - mount_point: "/var"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "yes"
+    expected_fstype: "XFS"
+    min_size_bytes: 5368709120
+    max_size_bytes: null
+    size_source: {min: "5.0 GiB", max: "unbounded"}
+    expected_mount_options: "defaults,nodev,nosuid,relatime"
+    source_id: ["rhel8-install-guide", "cis-rhel8"]
+    notes: "Holds logs, spool, and transient files. Minimum 5 GiB required. CIS Benchmark recommends nodev and nosuid mount options."
+  - mount_point: "/var/log"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "conditional"
+    expected_fstype: "XFS"
+    min_size_bytes: 2147483648
+    max_size_bytes: null
+    size_source: {min: "2.0 GiB", max: "unbounded"}
+    expected_mount_options: "defaults,nodev,noexec,nosuid,relatime"
+    source_id: ["cis-rhel8", "rhel8-security-hardening"]
+    notes: "Separate partition prevents log growth from affecting system stability. CIS Benchmark recommends nodev, noexec, nosuid mount options."
+  - mount_point: "/var/log/audit"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "conditional"
+    expected_fstype: "XFS"
+    min_size_bytes: 1073741824
+    max_size_bytes: null
+    size_source: {min: "1.0 GiB", max: "unbounded"}
+    expected_mount_options: "defaults,nodev,noexec,nosuid,relatime"
+    source_id: ["cis-rhel8", "rhel8-security-hardening"]
+    notes: "Should reside on separate mount point to prevent other processes from consuming audit log space. CIS Benchmark recommends nodev, noexec, nosuid mount options."
+  - mount_point: "/tmp"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "yes"
+    expected_fstype: "XFS"
+    min_size_bytes: 1073741824
+    max_size_bytes: null
+    size_source: {min: "1.0 GiB", max: "unbounded"}
+    expected_mount_options: "defaults,nodev,noexec,nosuid,relatime"
+    source_id: ["rhel8-security-hardening", "cis-rhel8"]
+    notes: "Separate partition prevents temp files from consuming root filesystem. CIS Benchmark requires nodev, nosuid, noexec mount options."
+  - mount_point: "/var/tmp"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "yes"
+    expected_fstype: "XFS"
+    min_size_bytes: 1073741824
+    max_size_bytes: null
+    size_source: {min: "1.0 GiB", max: "unbounded"}
+    expected_mount_options: "defaults,nodev,noexec,nosuid,relatime"
+    source_id: ["rhel8-security-hardening", "cis-rhel8"]
+    notes: "Separate partition recommended for bare-metal systems. Optional for virtual machines. CIS Benchmark recommends nodev, noexec, nosuid mount options."
+  - mount_point: "swap"
+    classification: "swap"
+    requirement: "mandatory"
+    mandatory: true
+    separate_filesystem_required: "yes"
+    expected_fstype: "swap"
+    min_size_bytes: 268435456
+    max_size_bytes: null
+    size_source: {min: "256 MiB", max: "unbounded"}
+    expected_mount_options: null
+    source_id: ["rhel8-managing-storage"]
+    notes: "Can be partition, file, or extended LVM logical volume. For hibernation, size must equal or exceed installed RAM. Modern systems should size based on workload, not RAM amount."
+sources:
+  rhel8-install-guide:
+    title: "Partitioning Reference | Performing a Standard RHEL 8 Installation"
+    publisher: "Red Hat"
+    url: "https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/8/html/performing_a_standard_rhel_8_installation/partitioning-reference_installing-rhel"
+    version_or_date: "RHEL 8 (2019-2024)"
+    retrieved: false
+  rhel8-security-hardening:
+    title: "Security Hardening | Red Hat Enterprise Linux 8"
+    publisher: "Red Hat"
+    url: "https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/8/html/security_hardening/assembly_securing-rhel-during-installation-security-hardening"
+    version_or_date: "RHEL 8 (2019-2024)"
+    retrieved: false
+  cis-rhel8:
+    title: "CIS Red Hat Enterprise Linux 8 Benchmark"
+    publisher: "Center for Internet Security (CIS)"
+    url: "https://www.cisecurity.org/benchmark/red_hat_linux"
+    version_or_date: "v2.0.0"
+    retrieved: false
+  rhel8-managing-storage:
+    title: "Getting Started with Swap | Managing Storage Devices | Red Hat Enterprise Linux 8"
+    publisher: "Red Hat"
+    url: "https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/8/html/managing_storage_devices/getting-started-with-swap_managing-storage-devices"
+    version_or_date: "RHEL 8 (2019-2024)"
+    retrieved: false

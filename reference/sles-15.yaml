@@ -1,0 +1,149 @@
+# =============================================================================
+# reference/sles-15.yaml  —  golden image (source-derived)
+# Layer: child of base  |  SUSE/SLES SLES 15 (SP1-SP7)
+# Généré depuis docs/storage-standards (recherche sourcée). Tailles en OCTETS
+# (interprétation de la chaîne source conservée dans size_source).
+# À VÉRIFIER contre les sources citées (section 'sources') avant de figer.
+# =============================================================================
+model_id: sles-15
+parent: base
+os_family: "SUSE/SLES"
+os_distribution: ["SLES", "openSUSE-Leap"]
+os_version: "SLES 15 (SP1-SP7)"
+default_fstype: "Btrfs (root); XFS (additional partitions)"
+swap_guidance: "Minimum 256 MiB. For suspend-to-disk/hibernation, allocate 512 MB-1 GB. Modern guidance (SLES 15): for systems with adequate RAM, swap can be smaller than historical 2x RAM. Consider 20-25% of RAM for systems with 4GB+ RAM. Systems with more than adequate RAM may not need swap at all."
+notes: "SLES 15 (all SP versions) uses Btrfs with refined subvolume layout. Root is @ subvolume. Key change from SLES 12: /var is now a dedicated Btrfs subvolume (@/var) with Copy-On-Write DISABLED for performance (logs, caches, VM images, databases). Subvolumes excluded from snapshots: @/var (entire), @/home, @/opt, @/srv, @/usr/local, @/tmp, @/boot/grub2/* (architecture-specific), @/.snapshots. XFS is default for additional non-root partitions if separated. Snapper snapshots enabled for root filesystem. System rollbacks only supported if default subvolume configuration maintained. FHS 3.0 principles followed for /tmp, /var, /home separability."
+expected_filesystems:
+  - mount_point: "/"
+    classification: "system"
+    requirement: "mandatory"
+    mandatory: true
+    separate_filesystem_required: "no"
+    expected_fstype: "Btrfs"
+    min_size_bytes: 17179869184
+    max_size_bytes: null
+    size_source: {min: "16 GiB", max: "unbounded"}
+    expected_mount_options: "defaults,relatime"
+    source_id: ["suse-sles15-sp7-expert-partitioner"]
+    notes: "Btrfs with subvolumes (@, @/var, @/home, @/opt, @/srv, @/usr/local, @/tmp, @/boot/grub2/*, @/.snapshots). Root subvolume is @. Minimum 16 GiB (with snapshots), SUSE recommends 32 GiB or more if /home not separate. Snapshots via Snapper. In SLES 15, /var is dedicated subvolume with CoW disabled."
+  - mount_point: "/boot"
+    classification: "boot"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "conditional"
+    expected_fstype: "Ext4 or Btrfs"
+    min_size_bytes: 524288000
+    max_size_bytes: 1073741824
+    size_source: {min: "500 MiB", max: "1 GiB"}
+    expected_mount_options: "defaults,relatime"
+    source_id: ["suse-sles15-sp7-expert-partitioner"]
+    notes: "500 MB recommended. Can be separate partition or included in root. Ext4 recommended for boot if separate. Btrfs boot support also available."
+  - mount_point: "/boot/efi"
+    classification: "boot"
+    requirement: "conditional"
+    mandatory: false
+    separate_filesystem_required: "yes"
+    expected_fstype: "FAT32 (VFAT)"
+    min_size_bytes: 272629760
+    max_size_bytes: 524288000
+    size_source: {min: "260 MiB", max: "500 MiB"}
+    expected_mount_options: "defaults,umask=0077"
+    source_id: ["suse-sles15-sp7-uefi"]
+    notes: "UEFI systems only. Must be FAT32 formatted. Physical partition or RAID1 only (no LVM, no other RAID). 260 MiB minimum for FAT32 compatibility, 500 MiB guideline."
+  - mount_point: "/var"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "conditional"
+    expected_fstype: "Btrfs subvolume or XFS"
+    min_size_bytes: 5368709120
+    max_size_bytes: null
+    size_source: {min: "5 GiB", max: "unbounded"}
+    expected_mount_options: "defaults,nodev,nosuid,relatime"
+    source_id: ["suse-sles15-sp7-filesystems"]
+    notes: "In SLES 15, /var is dedicated Btrfs subvolume (@/var) with Copy-On-Write disabled (contains logs, caches, VM images, databases). Excluded from snapshots. If separate partition, XFS default. CIS Benchmark recommends separate with nodev, nosuid. Do NOT use noexec on /var."
+  - mount_point: "/tmp"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "conditional"
+    expected_fstype: "Ext4, XFS, or tmpfs"
+    min_size_bytes: 1073741824
+    max_size_bytes: null
+    size_source: {min: "1 GiB", max: "unbounded"}
+    expected_mount_options: "defaults,nodev,nosuid,noexec,relatime"
+    source_id: ["cis-suse-benchmark"]
+    notes: "CIS Benchmark 1.1.2-1.1.5: Recommend separate partition with nodev, nosuid, noexec. Btrfs @/tmp subvolume excluded from snapshots. If tmpfs: defaults,rw,nosuid,nodev,noexec,relatime,size=<X>."
+  - mount_point: "/home"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "conditional"
+    expected_fstype: "XFS (if separate) or Btrfs"
+    min_size_bytes: 10737418240
+    max_size_bytes: null
+    size_source: {min: "10 GiB", max: "unbounded"}
+    expected_mount_options: "defaults,nodev,nosuid,relatime"
+    source_id: ["suse-sles15-sp7-filesystems"]
+    notes: "CIS Benchmark recommends separate partition. If Btrfs subvolume (@/home), excluded from snapshots to prevent user data loss. Default may be separate XFS or Btrfs subvolume."
+  - mount_point: "/var/tmp"
+    classification: "data"
+    requirement: "optional"
+    mandatory: false
+    separate_filesystem_required: "conditional"
+    expected_fstype: "Ext4, XFS, or Btrfs"
+    min_size_bytes: 1073741824
+    max_size_bytes: null
+    size_source: {min: "1 GiB", max: "unbounded"}
+    expected_mount_options: "defaults,nodev,nosuid,noexec,relatime"
+    source_id: ["cis-suse-benchmark"]
+    notes: "CIS Benchmark: separate partition with nodev, nosuid, noexec. Often symlink to /tmp. May be Btrfs subvolume."
+  - mount_point: "/dev/shm"
+    classification: "system"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "yes"
+    expected_fstype: "tmpfs"
+    min_size_bytes: 536870912
+    max_size_bytes: null
+    size_source: {min: "512 MiB", max: "unbounded"}
+    expected_mount_options: "defaults,nodev,nosuid,noexec,relatime,size=<percent-of-RAM>"
+    source_id: ["cis-suse-benchmark"]
+    notes: "CIS Benchmark 1.1.6: Mount options nodev, nosuid, noexec. Tmpfs in-memory filesystem."
+  - mount_point: "swap"
+    classification: "swap"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "yes"
+    expected_fstype: "swap"
+    min_size_bytes: 268435456
+    max_size_bytes: null
+    size_source: {min: "256 MiB", max: "unbounded"}
+    expected_mount_options: "defaults,pri=-2"
+    source_id: ["suse-sles15-sp7-expert-partitioner"]
+    notes: "Minimum 256 MiB. For suspend-to-disk, 512 MB-1 GB. Modern systems with adequate RAM can use proportionally smaller swap. If swap fills, add RAM instead."
+sources:
+  suse-sles15-sp7-expert-partitioner:
+    title: "Expert Partitioner | Deployment Guide | SLES 15 SP7"
+    publisher: "SUSE LLC"
+    url: "https://documentation.suse.com/sles/15-SP7/html/SLES-all/cha-expert-partitioner.html"
+    version_or_date: "SLES 15 SP7"
+    retrieved: true
+  suse-sles15-sp7-uefi:
+    title: "UEFI (Unified Extensible Firmware Interface) | Administration Guide | SLES 15 SP5"
+    publisher: "SUSE LLC"
+    url: "https://documentation.suse.com/sles/15-SP5/html/SLES-all/cha-uefi.html"
+    version_or_date: "SLES 15 SP5"
+    retrieved: true
+  suse-sles15-sp7-filesystems:
+    title: "Overview of file systems in Linux | Storage Administration Guide | SLES 15 SP7"
+    publisher: "SUSE LLC"
+    url: "https://documentation.suse.com/sles/15-SP7/html/SLES-all/cha-filesystems.html"
+    version_or_date: "SLES 15 SP7"
+    retrieved: true
+  cis-suse-benchmark:
+    title: "CIS SUSE Linux Enterprise Server Benchmarks (v2.0.0-v2.1.0 for SLES 12; v1.0.0+ for SLES 15)"
+    publisher: "Center for Internet Security (CIS)"
+    url: "https://www.cisecurity.org/benchmark/suse_linux"
+    version_or_date: "v2.1.0 (SLES 12), v1.0.0+ (SLES 15)"
+    retrieved: false

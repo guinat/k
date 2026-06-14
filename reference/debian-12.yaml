@@ -1,0 +1,173 @@
+# =============================================================================
+# reference/debian-12.yaml  —  golden image (source-derived)
+# Layer: child of base  |  Debian/Ubuntu Debian 12 (Bookworm)
+# Généré depuis docs/storage-standards (recherche sourcée). Tailles en OCTETS
+# (interprétation de la chaîne source conservée dans size_source).
+# À VÉRIFIER contre les sources citées (section 'sources') avant de figer.
+# =============================================================================
+model_id: debian-12
+parent: base
+os_family: "Debian/Ubuntu"
+os_distribution: ["Debian"]
+os_version: "Debian 12 (Bookworm)"
+default_fstype: "ext4"
+swap_guidance: "Traditional Debian recommendation: equal to system memory or 1.5-2x RAM. For modern systems (>1GB RAM) without hibernation: minimum round(sqrt(RAM)), maximum 2x RAM. With hibernation: minimum equal to RAM. Minimum 512MB in most cases. Can be swap partition or swapfile."
+notes: "Debian 12 (Bookworm) released June 2023. No significant changes from Debian 11 in recommended partition layout. ext4 remains default filesystem. CIS Benchmark v1.1.0 available for Debian 12."
+expected_filesystems:
+  - mount_point: "/"
+    classification: "system"
+    requirement: "mandatory"
+    mandatory: true
+    separate_filesystem_required: "yes"
+    expected_fstype: "ext4"
+    min_size_bytes: 8589934592
+    max_size_bytes: null
+    size_source: {min: "8 GiB", max: "unbounded"}
+    expected_mount_options: "defaults"
+    source_id: ["debian-install-guide"]
+    notes: "Root filesystem containing all essential system files. Minimum 8GB recommended by Debian official documentation."
+  - mount_point: "/boot"
+    classification: "boot"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "conditional"
+    expected_fstype: "ext4"
+    min_size_bytes: 268435456
+    max_size_bytes: 1073741824
+    size_source: {min: "256 MiB", max: "1 GiB"}
+    expected_mount_options: "defaults,nosuid,nodev"
+    source_id: ["debian-install-guide", "cis-debian-12"]
+    notes: "Static boot loader files. Separate partition recommended on GPT/UEFI systems. 256-512MB typical allocation. CIS Benchmark recommends nosuid,nodev mount options."
+  - mount_point: "/boot/efi"
+    classification: "boot"
+    requirement: "conditional"
+    mandatory: false
+    separate_filesystem_required: "yes"
+    expected_fstype: "vfat"
+    min_size_bytes: 209715200
+    max_size_bytes: 1073741824
+    size_source: {min: "200 MiB", max: "1 GiB"}
+    expected_mount_options: "defaults"
+    source_id: ["microsoft-uefi-spec"]
+    notes: "EFI System Partition (ESP) for UEFI firmware. Required for UEFI boot mode only. Minimum 200MB per UEFI specification, typically 512MB on Linux systems."
+  - mount_point: "/home"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "yes"
+    expected_fstype: "ext4"
+    min_size_bytes: null
+    max_size_bytes: null
+    size_source: {min: "unbounded", max: "unbounded"}
+    expected_mount_options: "defaults,nosuid,nodev"
+    source_id: ["debian-install-guide", "cis-debian-12"]
+    notes: "User home directories. Recommended separate partition for multi-user systems or large disk systems. CIS Benchmark recommends nosuid,nodev mount options."
+  - mount_point: "/usr"
+    classification: "system"
+    requirement: "optional"
+    mandatory: false
+    separate_filesystem_required: "conditional"
+    expected_fstype: "ext4"
+    min_size_bytes: null
+    max_size_bytes: null
+    size_source: {min: "unbounded", max: "unbounded"}
+    expected_mount_options: "defaults"
+    source_id: ["fhs-3.0"]
+    notes: "Static user programs and read-only data. Optional separate partition. Can be mounted read-only if separate filesystem (FHS 3.0 design principle)."
+  - mount_point: "/var"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "yes"
+    expected_fstype: "ext4"
+    min_size_bytes: 209715200
+    max_size_bytes: null
+    size_source: {min: "200 MiB", max: "unbounded"}
+    expected_mount_options: "defaults,nosuid,nodev"
+    source_id: ["debian-install-guide", "cis-debian-12"]
+    notes: "Variable data: logs, APT cache, dpkg information. Recommended minimum 200MB for base system. Recommended separate for multi-user systems. CIS Benchmark recommends nosuid,nodev."
+  - mount_point: "/var/log"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "conditional"
+    expected_fstype: "ext4"
+    min_size_bytes: 104857600
+    max_size_bytes: null
+    size_source: {min: "100 MiB", max: "unbounded"}
+    expected_mount_options: "defaults,nodev,nosuid,noexec"
+    source_id: ["cis-debian-12"]
+    notes: "System log files. CIS Benchmark recommends separate partition with nodev,nosuid,noexec mount options to prevent log filling and executable code execution."
+  - mount_point: "/var/tmp"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "conditional"
+    expected_fstype: "ext4"
+    min_size_bytes: 104857600
+    max_size_bytes: null
+    size_source: {min: "100 MiB", max: "unbounded"}
+    expected_mount_options: "defaults,nodev,nosuid,noexec"
+    source_id: ["cis-debian-12"]
+    notes: "Temporary files preserved between reboots. CIS Benchmark recommends separate partition with nodev,nosuid,noexec mount options."
+  - mount_point: "/tmp"
+    classification: "data"
+    requirement: "recommended"
+    mandatory: false
+    separate_filesystem_required: "yes"
+    expected_fstype: "ext4"
+    min_size_bytes: 524288000
+    max_size_bytes: 2147483648
+    size_source: {min: "500 MiB", max: "2 GiB"}
+    expected_mount_options: "defaults,nodev,nosuid,noexec"
+    source_id: ["cis-debian-12"]
+    notes: "Temporary files deleted on reboot. CIS Benchmark requires separate partition with nodev,nosuid,noexec mount options to prevent executable code and protect against resource exhaustion."
+  - mount_point: "/dev/shm"
+    classification: "data"
+    requirement: "optional"
+    mandatory: false
+    separate_filesystem_required: "no"
+    expected_fstype: "tmpfs"
+    min_size_bytes: null
+    max_size_bytes: null
+    size_source: {min: "N/A", max: "N/A"}
+    expected_mount_options: "defaults,nodev,nosuid,noexec"
+    source_id: ["cis-debian-12"]
+    notes: "Shared memory filesystem (tmpfs). CIS Benchmark recommends mounting with nodev,nosuid,noexec options to prevent malicious executable placement."
+  - mount_point: "swap"
+    classification: "swap"
+    requirement: "mandatory"
+    mandatory: true
+    separate_filesystem_required: "yes"
+    expected_fstype: "swap"
+    min_size_bytes: 536870912
+    max_size_bytes: null
+    size_source: {min: "512 MiB", max: "2x RAM"}
+    expected_mount_options: "defaults"
+    source_id: ["debian-install-guide"]
+    notes: "Swap space for virtual memory. Traditional guideline: equal to system RAM. Minimum 512MB in most cases. Without hibernation: min=round(sqrt(RAM)), max=2xRAM."
+sources:
+  debian-install-guide:
+    title: "Debian GNU/Linux Installation Guide - Appendix C: Partitioning for Debian"
+    publisher: "Debian Project"
+    url: "https://www.debian.org/releases/stable/amd64/apc.en.html"
+    version_or_date: "Current (Bookworm 12)"
+    retrieved: true
+  cis-debian-12:
+    title: "CIS Debian Linux 12 Benchmark v1.1.0"
+    publisher: "Center for Internet Security (CIS)"
+    url: "https://itsecure.hu/wp-content/uploads/2025/05/CIS_Debian_Linux_12_Benchmark_v1.1.0.pdf"
+    version_or_date: "v1.1.0 (2024-09-26)"
+    retrieved: false
+  microsoft-uefi-spec:
+    title: "UEFI/GPT-based hard drive partitions"
+    publisher: "Microsoft Learn"
+    url: "https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/configure-uefigpt-based-hard-drive-partitions"
+    version_or_date: "Current"
+    retrieved: true
+  fhs-3.0:
+    title: "Filesystem Hierarchy Standard Version 3.0"
+    publisher: "Linux Foundation (LSB Workgroup)"
+    url: "https://refspecs.linuxfoundation.org/FHS_3.0/fhs-3.0.html"
+    version_or_date: "3.0 (2015-06-17)"
+    retrieved: true
