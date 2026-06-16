@@ -13,6 +13,7 @@ Principes de cadrage :
 - **Périmètre fleet** : >= 500 serveurs, AIX + RHEL / Oracle Linux / Rocky / AlmaLinux / Debian / Ubuntu / SLES + Windows Server.
 - **Métadonnées non sensibles uniquement** : capacités, topologie, options de montage, résumé ACL non sensible. Aucun contenu de fichier, aucun ACL nominatif détaillé.
 - **La commande de collecte se branche par plateforme** (`platform`) mais alimente le même schéma cible.
+- **Livraison : un seul fichier JSON par passage de collecte** — un objet enveloppe `{ snapshot_id, generated_at, host_count, hosts: [ … ] }` où chaque élément de `hosts[]` est le document d'un serveur (le schéma ci-dessous). Pas un fichier par serveur. (JSONL — un objet-hôte par ligne — accepté pour les très grands parcs.)
 
 ## Principes
 
