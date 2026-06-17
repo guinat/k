@@ -1,0 +1,26 @@
+flowchart TD
+  classDef io fill:#f1f5f9,stroke:#64748b,color:#0f172a;
+  classDef pre fill:#fff7ed,stroke:#f59e0b,color:#7c2d12;
+  classDef rule fill:#ecfeff,stroke:#0891b2,color:#083344;
+  classDef llm fill:#f5f3ff,stroke:#7c3aed,color:#3b0764;
+
+  START((start)):::io --> ING["ingest<br/>normalize + enrich<br/>(storage_class · reference · history)"]:::pre
+
+  ING --> O1["O1 · deviations vs standards"]:::rule
+  ING --> O2["O2 · optimization (waste / misplaced)"]:::rule
+  ING --> O3["O3 · saturation + forecast (bytes + inodes)"]:::rule
+  ING --> O4["O4 · efficiency / standardization"]:::rule
+  ING --> O5["O5 · compliance (mount options / ACL)"]:::rule
+
+  O1 --> AGG
+  O2 --> AGG
+  O3 --> AGG
+  O4 --> AGG
+  O5 --> AGG
+
+  AGG["aggregate<br/>merge findings · score severity"]:::rule
+  AGG --> Q{"any findings?"}
+  Q -->|"no"| FINAL["finalize<br/>persist + report"]:::io
+  Q -->|"yes"| REPORT["report (LLM)<br/>explain each finding + prioritized recommendations, grounded"]:::llm
+  REPORT --> FINAL
+  FINAL --> ENDX((end)):::io

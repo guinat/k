@@ -1,6 +1,6 @@
-# Data Collection Specification — OS-agnostic storage schema (multi-OS)
+# Data Collection Specification: OS-agnostic storage schema (multi-OS)
 
-> **Raw** storage metadata to collect per server, expressed in a **single, unified, OS-agnostic schema** valid across AIX · Linux (all distributions) · Windows Server — all first-class. This is **the data contract**: the authoritative description of what each collection run produces.
+> **Raw** storage metadata to collect per server, expressed in a **single, unified, OS-agnostic schema** valid across AIX · Linux (all distributions) · Windows Server, all first-class. This is **the data contract**: the authoritative description of what each collection run produces.
 
 This specification covers the data-collection boundary only. The reference standards ("golden images"), the OS-by-OS field-applicability matrix, the field-by-field rationale with the Ansible collection logic, the LangGraph pipeline architecture, and the machine-validatable JSON Schema file are explicit next steps, described elsewhere as upcoming.
 
@@ -8,17 +8,17 @@ This specification covers the data-collection boundary only. The reference stand
 
 ## 1. Scope & framing
 
-This specification describes **raw collection only** — a first pass over storage metadata, plus an optional second-pass `content_aggregates` enrichment. It carries **no interpretation and no derived/computed values**.
+This specification describes **raw collection only**: a first pass over storage metadata, plus an optional second-pass `content_aggregates` enrichment. It carries **no interpretation and no derived/computed values**.
 
 Every computed field (storage class, percentages, growth rates, deviations, severities, confidence scores, etc.) is **excluded** from collection and **produced downstream** by the pipeline from the raw fields. See §7 for the explicit list of derived fields and §6 for how the raw fields cover the five objectives.
 
 The five objectives this data must ultimately serve:
 
-- **O1 — Deviation detection vs standards**: spot servers whose partitioning / filesystem layout differs from the model expected for their OS and version.
-- **O2 — Optimization (useless / obsolete / misplaced)**: reclaim space — obsolete data, over-provisioned volumes, application data sitting on system partitions.
-- **O3 — Reliability & full-filesystem prevention**: detect ahead of time the filesystems about to fill up (in **bytes AND inodes**) to avoid incidents.
-- **O4 — Operational efficiency & forecasting**: standardize storage structures and anticipate growth / capacity needs.
-- **O5 — Risk reduction & compliance**: ensure only appropriate data resides on system partitions; check mount options / ACLs (CIS baselines).
+- **O1: Deviation detection vs standards**: spot servers whose partitioning / filesystem layout differs from the model expected for their OS and version.
+- **O2: Optimization (useless / obsolete / misplaced)**: reclaim space: obsolete data, over-provisioned volumes, application data sitting on system partitions.
+- **O3: Reliability & full-filesystem prevention**: detect ahead of time the filesystems about to fill up (in **bytes AND inodes**) to avoid incidents.
+- **O4: Operational efficiency & forecasting**: standardize storage structures and anticipate growth / capacity needs.
+- **O5: Risk reduction & compliance**: ensure only appropriate data resides on system partitions; check mount options / ACLs (CIS baselines).
 
 ---
 
@@ -28,14 +28,14 @@ The five objectives this data must ultimately serve:
 - **AIX + Linux (all distributions) + Windows are all first-class, delivered together.** Windows has the same depth, the same obligation levels, and the same objective coverage as AIX and Linux. Windows collection (WinRM + PowerShell) and Windows reference standards are delivered in the same release as AIX and Linux.
 - **Fleet scope: >= 500 servers**, spanning AIX, the RHEL family (RHEL / Oracle Linux / Rocky / AlmaLinux), Debian / Ubuntu, SUSE / SLES, and Windows Server.
 - **Non-sensitive metadata only.** Only capacities, topology, mount options, and a non-sensitive ACL summary (on Windows) are collected. No filenames, no owners, no file contents, no named ACEs/SIDs.
-- **Delivery = ONE envelope file per collection run.** The delivery unit is a single envelope object `{ snapshot_id, generated_at, host_count, hosts[] }` where each element of `hosts[]` is one server's document — all servers for the run in a single file, under the one shared schema.
-- **JSONL accepted for very large fleets.** For very large fleets the same content may be delivered as JSONL — one host object per line. In that form, each line carries `snapshot_id` and `scan_timestamp` so every line remains attributable to its run.
+- **Delivery = ONE envelope file per collection run.** The delivery unit is a single envelope object `{ snapshot_id, generated_at, host_count, hosts[] }` where each element of `hosts[]` is one server's document: all servers for the run in a single file, under the one shared schema.
+- **JSONL accepted for very large fleets.** For very large fleets the same content may be delivered as JSONL: one host object per line. In that form, each line carries `snapshot_id` and `scan_timestamp` so every line remains attributable to its run.
 
 ---
 
 ## 3. Data model & collection principles
 
-1. **Exact bytes everywhere.** All sizes (`size_*`, `reserved_bytes`, `extent_size_bytes`, paging sizes, etc.) are integer **bytes** — never blocks, KB, MB, GB, or percentages. Native outputs in KB or blocks (`df -k`, `lsps`, `vgs --units b`) are normalized to bytes at collection time.
+1. **Exact bytes everywhere.** All sizes (`size_*`, `reserved_bytes`, `extent_size_bytes`, paging sizes, etc.) are integer **bytes**, never blocks, KB, MB, GB, or percentages. Native outputs in KB or blocks (`df -k`, `lsps`, `vgs --units b`) are normalized to bytes at collection time.
 
 2. **Agnostic model: `filesystems[]` + `storage_topology`.**
    - `filesystems[]` is the **universal denominator**: it covers both Unix mount points (`/`, `/var`, …) AND Windows volumes (`C:`, `D:`, and folder mount points). It is the only structure mandatory on every OS.
@@ -43,24 +43,24 @@ The five objectives this data must ultimately serve:
 
 3. **Linkage by keys (`backing_ref` / `group_ref`), not by nesting.** A filesystem references its underlying volume/group by **key** (`backing_ref`, `group_ref`), not by nesting. This weak coupling lets the pipeline **derive `storage_class`** (system vs data) generally: rootvg/datavg on AIX, system/data VGs on Linux, `C:` (system) vs other drives (data) on Windows.
 
-4. **Conditional collection, branched per platform.** The command reads `platform` then runs the appropriate branch (`lsvg`/`lslv`/`lspv`/`df`/`lsps` for AIX; `vgs`/`lvs`/`pvs`/`df`/`tune2fs`/`btrfs` for Linux; PowerShell `Get-*`/`Win32_PageFileUsage`/`Get-Acl` for Windows). A field that is not applicable to an OS/fstype is returned as explicit `null` (**verified N/A**), never silently omitted — so the pipeline can distinguish "N/A" from "not collected". The collection command branches per platform; the schema does not.
+4. **Conditional collection, branched per platform.** The command reads `platform` then runs the appropriate branch (`lsvg`/`lslv`/`lspv`/`df`/`lsps` for AIX; `vgs`/`lvs`/`pvs`/`df`/`tune2fs`/`btrfs` for Linux; PowerShell `Get-*`/`Win32_PageFileUsage`/`Get-Acl` for Windows). A field that is not applicable to an OS/fstype is returned as explicit `null` (**verified N/A**), never silently omitted, so the pipeline can distinguish "N/A" from "not collected". The collection command branches per platform; the schema does not.
 
-5. **UTC time series.** Each host document is a snapshot stamped with `scan_timestamp` (UTC ISO-8601), grouped under a run-level `snapshot_id`. Collection is **repeated over time and append-only — never overwrite**. The successive snapshots per host form the time series that makes growth derivation and saturation forecasting possible downstream.
+5. **UTC time series.** Each host document is a snapshot stamped with `scan_timestamp` (UTC ISO-8601), grouped under a run-level `snapshot_id`. Collection is **repeated over time and append-only; never overwrite**. The successive snapshots per host form the time series that makes growth derivation and saturation forecasting possible downstream.
 
-6. **Non-sensitive metadata only.** Only capacity, topology, mount options, and a **non-sensitive ACL summary** (`acl_summary`, Windows) are collected — counts, inheritance flag, and well-known principals, never named ACEs/SIDs, filenames, owners, or contents.
+6. **Non-sensitive metadata only.** Only capacity, topology, mount options, and a **non-sensitive ACL summary** (`acl_summary`, Windows) are collected: counts, inheritance flag, and well-known principals, never named ACEs/SIDs, filenames, owners, or contents.
 
 7. **Per-OS nuances (decisive for byte accuracy):**
-   - **AIX** — LVM (rootvg/datavg), JFS2; `lsvg`/`lslv`/`lspv`, `df -k`/`df -v`, `lsps -a`. No ext-style reserved blocks → `reserved_bytes = null`.
-   - **RHEL / Oracle Linux / Rocky / AlmaLinux** — **XFS by default** → no reserved blocks (`reserved_bytes = null`); use `df -i` for inodes and `xfs_info`. LVM common (`vgs`/`lvs`/`pvs --units b`). `/boot/efi` is present **only on UEFI x86_64**.
-   - **Debian / Ubuntu** — **ext4 by default** → `reserved_bytes` derived via **`tune2fs -l`** (reserved blocks × block size). LVM optional.
-   - **SUSE / SLES** — **btrfs by default, with subvolumes + snapshots** → `df` is **misleading**; use **`btrfs filesystem usage`** / qgroups for the real bytes. btrfs has no fixed inode table → `inodes_total` / `inodes_used` are `null`. LVM optional.
-   - **Windows Server** — **NTFS / ReFS**, drive letters / folder mount points; collected over **WinRM + PowerShell**. No inodes (`inodes_* = null`). **ACLs replace mount options** (`access_model = ntfs-acl`, `mount_options = null`, `acl_summary` populated). **Storage Spaces**: pool = `group` (`storage-pool`), virtual disk = `volume` (`virtual-disk`). **Basic disk**: partitions exposed as `volumes` (`partition`), `groups` empty. Sizes already in bytes.
+   - **AIX**: LVM (rootvg/datavg), JFS2; `lsvg`/`lslv`/`lspv`, `df -k`/`df -v`, `lsps -a`. No ext-style reserved blocks → `reserved_bytes = null`.
+   - **RHEL / Oracle Linux / Rocky / AlmaLinux**: **XFS by default** → no reserved blocks (`reserved_bytes = null`); use `df -i` for inodes and `xfs_info`. LVM common (`vgs`/`lvs`/`pvs --units b`). `/boot/efi` is present **only on UEFI x86_64**.
+   - **Debian / Ubuntu**: **ext4 by default** → `reserved_bytes` derived via **`tune2fs -l`** (reserved blocks × block size). LVM optional.
+   - **SUSE / SLES**: **btrfs by default, with subvolumes + snapshots** → `df` is **misleading**; use **`btrfs filesystem usage`** / qgroups for the real bytes. btrfs has no fixed inode table → `inodes_total` / `inodes_used` are `null`. LVM optional.
+   - **Windows Server**: **NTFS / ReFS**, drive letters / folder mount points; collected over **WinRM + PowerShell**. No inodes (`inodes_* = null`). **ACLs replace mount options** (`access_model = ntfs-acl`, `mount_options = null`, `acl_summary` populated). **Storage Spaces**: pool = `group` (`storage-pool`), virtual disk = `volume` (`virtual-disk`). **Basic disk**: partitions exposed as `volumes` (`partition`), `groups` empty. Sizes already in bytes.
 
 ---
 
 ## 4. The JSON schema
 
-The delivery unit is the **envelope** below. Run-level identifiers (`snapshot_id`, `generated_at`, `host_count`) live on the envelope and are **not** duplicated inside any host. Each `hosts[]` element is one server's document and carries its own `scan_timestamp`, but **no per-host `snapshot_id`** — the run identifier is the envelope's.
+The delivery unit is the **envelope** below. Run-level identifiers (`snapshot_id`, `generated_at`, `host_count`) live on the envelope and are **not** duplicated inside any host. Each `hosts[]` element is one server's document and carries its own `scan_timestamp`, but **no per-host `snapshot_id`**: the run identifier is the envelope's.
 
 **Obligation legend:** `REQ` = required · `REC` = recommended · `COND` = conditional (nullable per OS/fstype) · `REQ*` = required once a group/volume exists (else the key is `null`).
 
@@ -69,10 +69,10 @@ The delivery unit is the **envelope** below. Run-level identifiers (`snapshot_id
 ```jsonc
 // ---- THE FILE: one object for the whole fleet, per run ------------------
 {
-  "snapshot_id":  "string",   // REQ — collection-run identifier (RUN level)
-  "generated_at": "string",   // REQ — UTC ISO-8601, file generation time (RUN level)
-  "host_count":   number,     // REQ — number of elements in hosts[] (RUN level)
-  "hosts": [ /* ONE document per server — host schema below */ ]
+  "snapshot_id":  "string",   // REQ: collection-run identifier (RUN level)
+  "generated_at": "string",   // REQ: UTC ISO-8601, file generation time (RUN level)
+  "host_count":   number,     // REQ: number of elements in hosts[] (RUN level)
+  "hosts": [ /* ONE document per server: host schema below */ ]
 }
 ```
 
@@ -82,50 +82,50 @@ The delivery unit is the **envelope** below. Run-level identifiers (`snapshot_id
 // ---- ONE ELEMENT OF hosts[]: a single server ---------------------------
 {
   // ── Identity & collection metadata (UNIVERSAL, all OS) ─────────────────
-  "host_id":          "string",   // REQ — stable host identifier
+  "host_id":          "string",   // REQ: stable host identifier
   "hostname":         "string",   // REQ
-  "gsma_code":        "string",   // REQ — site/fleet code
-  "host_role_env":    "string",   // REQ — prod | preprod | test | dev ...
-  "platform":         "string",   // REQ — enum: aix | linux | windows
-  "os_family":        "string",   // REQ — AIX | RedHat | Debian | Suse | OracleLinux | Windows
-  "os_distribution":  "string",   // REQ — AIX | RHEL | Ubuntu | Debian | SLES | OracleLinux | WindowsServer
+  "gsma_code":        "string",   // REQ: site/fleet code
+  "host_role_env":    "string",   // REQ: prod | preprod | test | dev ...
+  "platform":         "string",   // REQ: enum: aix | linux | windows
+  "os_family":        "string",   // REQ: AIX | RedHat | Debian | Suse | OracleLinux | Windows
+  "os_distribution":  "string",   // REQ: AIX | RHEL | Ubuntu | Debian | SLES | OracleLinux | WindowsServer
   "os_version":       "string",   // REQ
-  "architecture":     "string",   // REQ — ppc64 | x86_64 | ...
-  "scan_timestamp":   "string",   // REQ — UTC ISO-8601 (this host's scan time); NO per-host snapshot_id
-  "collection_method":"string",   // REQ — ssh-shell | winrm-powershell | agent
-  "scan_confidence":  number,     // REQ — 0..1 collection reliability
+  "architecture":     "string",   // REQ: ppc64 | x86_64 | ...
+  "scan_timestamp":   "string",   // REQ: UTC ISO-8601 (this host's scan time); NO per-host snapshot_id
+  "collection_method":"string",   // REQ: ssh-shell | winrm-powershell | agent
+  "scan_confidence":  number,     // REQ: 0..1 collection reliability
 
   // ── UNIVERSAL DENOMINATOR: every mountable filesystem / Windows volume ──
   "filesystems": [{
-    "mount_point":         "string",       // REQ — "/", "/var" | "C:", "D:" | mount-folder
+    "mount_point":         "string",       // REQ: "/", "/var" | "C:", "D:" | mount-folder
     "label":               "string|null",  // REC
-    "fstype":              "string",        // REQ — xfs|ext4|btrfs|jfs2|ntfs|refs|vfat...
-    "size_total_bytes":     number,         // REQ — bytes
-    "size_used_bytes":      number,         // REQ — bytes
-    "size_available_bytes": number,         // REQ — bytes
-    "reserved_bytes":      "number|null",   // COND — ext only; null on xfs/jfs2/ntfs/refs/btrfs
-    "inodes_total":        "number|null",   // COND — null on Windows NTFS/ReFS
-    "inodes_used":         "number|null",   // COND — null on Windows NTFS/ReFS
-    "access_model":         "string",       // REQ — "posix-mount-options" | "ntfs-acl"
-    "mount_options":       "string|null",   // COND — Unix flags; null on Windows
-    "acl_summary":         "object|null",   // COND — non-sensitive Windows ACL summary; null on Unix
-    "backing_kind":         "string",       // REQ — lvm-lv | partition | virtual-disk | network | pseudo
-    "backing_ref":         "string|null",   // REQ* — key to the underlying volume/disk
-    "group_ref":           "string|null",   // REQ* — key to the group (VG/pool)
-    "content_aggregates":  { /* object */ } // REC — non-sensitive aggregates (2nd pass)
+    "fstype":              "string",        // REQ: xfs|ext4|btrfs|jfs2|ntfs|refs|vfat...
+    "size_total_bytes":     number,         // REQ: bytes
+    "size_used_bytes":      number,         // REQ: bytes
+    "size_available_bytes": number,         // REQ: bytes
+    "reserved_bytes":      "number|null",   // COND: ext only; null on xfs/jfs2/ntfs/refs/btrfs
+    "inodes_total":        "number|null",   // COND: null on Windows NTFS/ReFS
+    "inodes_used":         "number|null",   // COND: null on Windows NTFS/ReFS
+    "access_model":         "string",       // REQ: "posix-mount-options" | "ntfs-acl"
+    "mount_options":       "string|null",   // COND: Unix flags; null on Windows
+    "acl_summary":         "object|null",   // COND: non-sensitive Windows ACL summary; null on Unix
+    "backing_kind":         "string",       // REQ: lvm-lv | partition | virtual-disk | network | pseudo
+    "backing_ref":         "string|null",   // REQ*: key to the underlying volume/disk
+    "group_ref":           "string|null",   // REQ*: key to the group (VG/pool)
+    "content_aggregates":  { /* object */ } // REC: non-sensitive aggregates (2nd pass)
   }],
 
-  // ── PLATFORM STORAGE TOPOLOGY — neutral levels + *_kind discriminator ───
+  // ── PLATFORM STORAGE TOPOLOGY: neutral levels + *_kind discriminator ───
   "storage_topology": {
     "groups": [{
       "group_name":       "string",         // REQ* (once a group exists)
-      "group_kind":       "string",         // REQ* — lvm-vg | storage-pool
-      "size_total_bytes":  number,          // REQ* — bytes
-      "size_free_bytes":   number,          // REQ* — bytes
+      "group_kind":       "string",         // REQ*: lvm-vg | storage-pool
+      "size_total_bytes":  number,          // REQ*: bytes
+      "size_free_bytes":   number,          // REQ*: bytes
       "member_disk_count": number,          // REQ*
-      "state":            "string",         // REQ* — active | online | degraded ...
-      "extent_size_bytes":"number|null",    // COND — PE size (LVM) / extent; null if N/A
-      "capabilities": {                     // COND — nullable per OS
+      "state":            "string",         // REQ*: active | online | degraded ...
+      "extent_size_bytes":"number|null",    // COND: PE size (LVM) / extent; null if N/A
+      "capabilities": {                     // COND: nullable per OS
         "max_lvs":     "number|null",       //   AIX
         "max_pps":     "number|null",       //   AIX
         "vg_type":     "string|null",       //   AIX (big | scalable ...)
@@ -134,27 +134,27 @@ The delivery unit is the **envelope** below. Run-level identifiers (`snapshot_id
     }],
     "volumes": [{
       "volume_name": "string",              // REQ* (once a volume exists)
-      "volume_kind": "string",              // REQ* — lvm-lv | partition | virtual-disk
-      "group_ref":   "string|null",         // REQ* — key to parent group; null if standalone
-      "size_bytes":   number,               // REQ* — bytes
-      "type":        "string|null",         // REC — jfs2 | linear | striped | mirror | gpt-part ...
-      "redundancy":  "string|null"          // COND — none | mirror | parity ...
+      "volume_kind": "string",              // REQ*: lvm-lv | partition | virtual-disk
+      "group_ref":   "string|null",         // REQ*: key to parent group; null if standalone
+      "size_bytes":   number,               // REQ*: bytes
+      "type":        "string|null",         // REC: jfs2 | linear | striped | mirror | gpt-part ...
+      "redundancy":  "string|null"          // COND: none | mirror | parity ...
     }],
     "disks": [{
       "disk_name":  "string",               // REQ* (if exposed)
-      "size_bytes":  number,                // REQ* — bytes
-      "free_bytes": "number|null",          // REC — bytes
-      "group_ref":  "string|null",          // REC — key to group
-      "media_type": "string|null"           // REC — hdd | ssd | unspecified
+      "size_bytes":  number,                // REQ*: bytes
+      "free_bytes": "number|null",          // REC: bytes
+      "group_ref":  "string|null",          // REC: key to group
+      "media_type": "string|null"           // REC: hdd | ssd | unspecified
     }]
   },
 
   // ── PAGING / SWAP / PAGEFILE ────────────────────────────────────────────
   "paging": [{
     "name":             "string",           // REQ
-    "kind":             "string",           // REQ — aix-paging-lv | linux-swap-partition | linux-swap-lv | linux-swap-file | windows-pagefile
-    "size_total_bytes":  number,            // REQ — bytes
-    "size_used_bytes":  "number|null"       // REC — bytes
+    "kind":             "string",           // REQ: aix-paging-lv | linux-swap-partition | linux-swap-lv | linux-swap-file | windows-pagefile
+    "size_total_bytes":  number,            // REQ: bytes
+    "size_used_bytes":  "number|null"       // REC: bytes
   }]
 }
 ```
@@ -186,7 +186,7 @@ Columns: **Field** | **Type** | **Source AIX** | **Source Linux** | **Source Win
 
 > Note: `snapshot_id`, `generated_at`, and `host_count` are **run-level** fields on the envelope (§4.1) and are deliberately **absent** from the host element.
 >
-> Note: identity enum fields are **normalized** from raw command output to the canonical values — e.g. `/etc/os-release` `ID` / `ID_LIKE` → the `os_family` enum (`RedHat`, `Debian`, `Suse`, …), `Win32_OperatingSystem.Caption` → `WindowsServer`, and `Get-Volume.DriveLetter` (`C`) → a `mount_point` such as `C:`. `CMDB` = configuration management database.
+> Note: identity enum fields are **normalized** from raw command output to the canonical values; e.g. `/etc/os-release` `ID` / `ID_LIKE` → the `os_family` enum (`RedHat`, `Debian`, `Suse`, …), `Win32_OperatingSystem.Caption` → `WindowsServer`, and `Get-Volume.DriveLetter` (`C`) → a `mount_point` such as `C:`. `CMDB` = configuration management database.
 
 ### 5.2 filesystems[] (universal denominator)
 
@@ -257,7 +257,7 @@ Columns: **Field** | **Type** | **Source AIX** | **Source Linux** | **Source Win
 | size_total_bytes | number | `lsps -a` (MB ×1048576) | `swapon --show=SIZE --bytes` | `Win32_PageFileUsage`.AllocatedBaseSize ×1MB | REQ |
 | size_used_bytes | number\|null | `lsps -a` (%Used × size) | `swapon --show=USED --bytes` | `Win32_PageFileUsage`.CurrentUsage ×1MB | REC |
 
-### 5.7 content_aggregates (second pass, non-sensitive) — `filesystems[].content_aggregates`
+### 5.7 content_aggregates (second pass, non-sensitive): `filesystems[].content_aggregates`
 
 | Field | Type | Source AIX | Source Linux | Source Windows (PowerShell) | Obligation |
 |---|---|---|---|---|---|
@@ -268,7 +268,7 @@ Columns: **Field** | **Type** | **Source AIX** | **Source Linux** | **Source Win
 | ext_size_top (per extension) | object\|null | `find` + aggregate | `find` + aggregate | `Group-Object Extension` / `Sum Length` | REC |
 | world_writable_dir_count | number\|null | `find -type d -perm -0002 \| wc -l` | `find -type d -perm -0002 \| wc -l` | `Get-ChildItem -Directory` + ACL check, count only | REC |
 
-> Aggregates are **strictly non-nominative** (counts, sizes, dates only — never filenames or contents). This second pass is optional enrichment; the first pass alone already covers all five objectives.
+> Aggregates are **strictly non-nominative** (counts, sizes, dates only, never filenames or contents). This second pass is optional enrichment; the first pass alone already covers all five objectives.
 
 ---
 
@@ -278,11 +278,11 @@ The **mandatory set** (Identity + `filesystems[]` + `storage_topology` where app
 
 | Objective | Mandatory fields that carry it | AIX | Linux | Windows |
 |---|---|---|---|---|
-| **O1 — Deviation detection vs standards** (FS + groups) | `mount_point`, `fstype`, `size_total_bytes`, `group_*`, `volume_*` | OK | OK | OK |
-| **O2 — Optimization** (useless/obsolete/misplaced) | `size_used_bytes`/`size_available_bytes`, `group_ref`/`backing_ref` (→ system/data), `content_aggregates` | OK | OK | OK |
-| **O3 — Reliability & full-FS prevention** (growth) | `size_total/used/available_bytes`, `inodes_*` (Unix), `scan_timestamp` (series) | OK | OK | OK |
-| **O4 — Operational efficiency & forecasting** | neutral topology `groups/volumes/disks`, `extent_size_bytes`, `paging[]`, UTC series | OK | OK | OK |
-| **O5 — Risk reduction & compliance** | `group_ref`/`backing_ref` (→ `storage_class`), `access_model`, `acl_summary`/`mount_options`, `content_aggregates.world_writable_dir_count` (CIS, 2nd pass) | OK | OK | OK |
+| **O1: Deviation detection vs standards** (FS + groups) | `mount_point`, `fstype`, `size_total_bytes`, `group_*`, `volume_*` | OK | OK | OK |
+| **O2: Optimization** (useless/obsolete/misplaced) | `size_used_bytes`/`size_available_bytes`, `group_ref`/`backing_ref` (→ system/data), `content_aggregates` | OK | OK | OK |
+| **O3: Reliability & full-FS prevention** (growth) | `size_total/used/available_bytes`, `inodes_*` (Unix), `scan_timestamp` (series) | OK | OK | OK |
+| **O4: Operational efficiency & forecasting** | neutral topology `groups/volumes/disks`, `extent_size_bytes`, `paging[]`, UTC series | OK | OK | OK |
+| **O5: Risk reduction & compliance** | `group_ref`/`backing_ref` (→ `storage_class`), `access_model`, `acl_summary`/`mount_options`, `content_aggregates.world_writable_dir_count` (CIS, 2nd pass) | OK | OK | OK |
 
 Two OS-specific notes that keep coverage complete and at the same level on all three platforms:
 
@@ -293,7 +293,7 @@ Two OS-specific notes that keep coverage complete and at the same level on all t
 
 ## 7. Derived fields (EXCLUDED from collection)
 
-The following fields are **not collected** — they are **derived downstream** by the pipeline from the raw fields above. They are listed here only to mark the collection / processing boundary.
+The following fields are **not collected**; they are **derived downstream** by the pipeline from the raw fields above. They are listed here only to mark the collection / processing boundary.
 
 | Derived field | Derived from | Semantics |
 |---|---|---|
@@ -311,7 +311,7 @@ The following fields are **not collected** — they are **derived downstream** b
 
 ## 8. JSON examples
 
-One **envelope file** for a single collection run. Its `hosts[]` array holds five host documents — AIX (JFS2/LVM rootvg+datavg), RHEL (XFS, no LVM, UEFI), Debian/Ubuntu (ext4, populated `reserved_bytes`), SLES (btrfs subvolumes), and Windows (NTFS `C:` system + ReFS `D:` data + Storage Space + pagefile). The envelope carries `snapshot_id`, `generated_at`, and `host_count`; **no host carries its own `snapshot_id`** — each keeps only its `scan_timestamp`.
+One **envelope file** for a single collection run. Its `hosts[]` array holds five host documents: AIX (JFS2/LVM rootvg+datavg), RHEL (XFS, no LVM, UEFI), Debian/Ubuntu (ext4, populated `reserved_bytes`), SLES (btrfs subvolumes), and Windows (NTFS `C:` system + ReFS `D:` data + Storage Space + pagefile). The envelope carries `snapshot_id`, `generated_at`, and `host_count`; **no host carries its own `snapshot_id`**, each keeps only its `scan_timestamp`.
 
 ```json
 {

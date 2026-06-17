@@ -1,0 +1,32 @@
+content_aggregates carries optional, non-sensitive second-pass signals about what a filesystem actually contains (how old the data is, how big,
+which file types dominate, how many world-writable directories), so the pipeline can tell reclaimable or misplaced data apart from data that is merely present, which
+capacity figures alone cannot do (objective O2, plus the world-writable part of O5).
+
+
+  "content_aggregates": {
+    "file_count":               "number|null",  // number of files
+    "dir_count":                "number|null",  // number of directories
+    "largest_file_bytes":       "number|null",  // size of the largest file (bytes)
+    "oldest_mtime":             "string|null",  // UTC ISO-8601, oldest mtime
+    "newest_mtime":             "string|null",  // UTC ISO-8601, newest mtime
+    "world_writable_dir_count": "number|null",  // number of world-writable directories (O5 / CIS)
+    "ext_size_top": [                            // top N extensions by total size; [] or null if not collected
+      { "ext": "string", "file_count": "number", "total_bytes": "number" }
+    ]
+  }
+
+  Filled example:
+
+  "content_aggregates": {
+    "file_count": 248113,
+    "dir_count": 11920,
+    "largest_file_bytes": 5368709120,
+    "oldest_mtime": "2019-03-11T04:22:07Z",
+    "newest_mtime": "2026-06-16T23:51:40Z",
+    "world_writable_dir_count": 3,
+    "ext_size_top": [
+      { "ext": "log", "file_count": 18044, "total_bytes": 32212254720 },
+      { "ext": "gz",  "file_count": 412,   "total_bytes": 10737418240 },
+      { "ext": "dbf", "file_count": 7,     "total_bytes": 6442450944 }
+    ]
+  }
